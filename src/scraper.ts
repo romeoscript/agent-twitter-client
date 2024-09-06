@@ -14,12 +14,10 @@ import {
   Profile,
 } from './profile';
 import {
-  fetchQuotedTweetsPage,
   fetchSearchProfiles,
   fetchSearchTweets,
   SearchMode,
   searchProfiles,
-  searchQuotedTweets,
   searchTweets,
 } from './search';
 import {
@@ -27,7 +25,6 @@ import {
   fetchProfileFollowers,
   getFollowing,
   getFollowers,
-  followUser,
 } from './relationships';
 import { QueryProfilesResponse, QueryTweetsResponse } from './timeline-v1';
 import { getTrends } from './trends';
@@ -45,62 +42,9 @@ import {
   getTweetsAndRepliesByUserId,
   getTweetsAndReplies,
   createCreateTweetRequest,
-  PollData,
-  createCreateTweetRequestV2,
-  getTweetV2,
-  getTweetsV2,
-  defaultOptions,
-  createQuoteTweetRequest,
-  likeTweet,
-  retweet,
-  createCreateNoteTweetRequest,
-  createCreateLongTweetRequest,
-  getArticle,
-  getAllRetweeters,
-  Retweeter,
 } from './tweets';
-import {
-  parseTimelineTweetsV2,
-  TimelineArticle,
-  TimelineV2,
-} from './timeline-v2';
-import { fetchHomeTimeline } from './timeline-home';
-import { fetchFollowingTimeline } from './timeline-following';
-import {
-  TTweetv2Expansion,
-  TTweetv2MediaField,
-  TTweetv2PlaceField,
-  TTweetv2PollField,
-  TTweetv2TweetField,
-  TTweetv2UserField,
-} from 'twitter-api-v2';
-import {
-  DirectMessagesResponse,
-  getDirectMessageConversations,
-  sendDirectMessage,
-  SendDirectMessageResponse,
-} from './messages';
-import {
-  fetchAudioSpaceById,
-  fetchAuthenticatePeriscope,
-  fetchBrowseSpaceTopics,
-  fetchCommunitySelectQuery,
-  fetchLiveVideoStreamStatus,
-  fetchLoginTwitterToken,
-} from './spaces';
-import {
-  AudioSpace,
-  Community,
-  LiveVideoStreamStatus,
-  LoginTwitterTokenResponse,
-  Subtopic,
-} from './types/spaces';
-import {
-  createGrokConversation,
-  grokChat,
-  GrokChatOptions,
-  GrokChatResponse,
-} from './grok';
+import { parseTimelineTweetsV2, TimelineV2 } from './timeline-v2';
+import { fetchHomeTimeline, HomeTimelineResponse } from './timeline-home';
 
 const twUrl = 'https://twitter.com';
 const UserTweetsUrl =
@@ -313,7 +257,7 @@ export class Scraper {
   }
 
   /**
-   * Fetches the home timeline for the current user. (for you feed)
+   * Fetches the home timeline for the current user.
    * @param count The number of tweets to fetch.
    * @param seenTweetIds An array of tweet IDs that have already been seen.
    * @returns A promise that resolves to the home timeline response.
@@ -323,19 +267,6 @@ export class Scraper {
     seenTweetIds: string[],
   ): Promise<any[]> {
     return await fetchHomeTimeline(count, seenTweetIds, this.auth);
-  }
-
-  /**
-   * Fetches the home timeline for the current user. (following feed)
-   * @param count The number of tweets to fetch.
-   * @param seenTweetIds An array of tweet IDs that have already been seen.
-   * @returns A promise that resolves to the home timeline response.
-   */
-  public async fetchFollowingTimeline(
-    count: number,
-    seenTweetIds: string[],
-  ): Promise<any[]> {
-    return await fetchFollowingTimeline(count, seenTweetIds, this.auth);
   }
 
   async getUserTweets(
@@ -476,80 +407,11 @@ export class Scraper {
    * Send a tweet
    * @param text The text of the tweet
    * @param tweetId The id of the tweet to reply to
-   * @param mediaData Optional media data
    * @returns
    */
 
-  async sendTweet(
-    text: string,
-    replyToTweetId?: string,
-    mediaData?: { data: Buffer; mediaType: string }[],
-    hideLinkPreview?: boolean,
-  ) {
-    return await createCreateTweetRequest(
-      text,
-      this.auth,
-      replyToTweetId,
-      mediaData,
-      hideLinkPreview,
-    );
-  }
-
-  async sendNoteTweet(
-    text: string,
-    replyToTweetId?: string,
-    mediaData?: { data: Buffer; mediaType: string }[],
-  ) {
-    return await createCreateNoteTweetRequest(
-      text,
-      this.auth,
-      replyToTweetId,
-      mediaData,
-    );
-  }
-
-  /**
-   * Send a long tweet (Note Tweet)
-   * @param text The text of the tweet
-   * @param tweetId The id of the tweet to reply to
-   * @param mediaData Optional media data
-   * @returns
-   */
-  async sendLongTweet(
-    text: string,
-    replyToTweetId?: string,
-    mediaData?: { data: Buffer; mediaType: string }[],
-  ) {
-    return await createCreateLongTweetRequest(
-      text,
-      this.auth,
-      replyToTweetId,
-      mediaData,
-    );
-  }
-
-  /**
-   * Send a tweet
-   * @param text The text of the tweet
-   * @param tweetId The id of the tweet to reply to
-   * @param options The options for the tweet
-   * @returns
-   */
-
-  async sendTweetV2(
-    text: string,
-    replyToTweetId?: string,
-    options?: {
-      poll?: PollData;
-      quoted_tweet_id?: string;
-    },
-  ) {
-    return await createCreateTweetRequestV2(
-      text,
-      this.auth,
-      replyToTweetId,
-      options,
-    );
+  async sendTweet(text: string, replyToTweetId?: string) {
+    return await createCreateTweetRequest(text, this.auth, replyToTweetId);
   }
 
   /**
@@ -652,62 +514,6 @@ export class Scraper {
   }
 
   /**
-   * Fetches a single tweet by ID using the Twitter API v2.
-   * Allows specifying optional expansions and fields for more detailed data.
-   *
-   * @param {string} id - The ID of the tweet to fetch.
-   * @param {Object} [options] - Optional parameters to customize the tweet data.
-   * @param {string[]} [options.expansions] - Array of expansions to include, e.g., 'attachments.poll_ids'.
-   * @param {string[]} [options.tweetFields] - Array of tweet fields to include, e.g., 'created_at', 'public_metrics'.
-   * @param {string[]} [options.pollFields] - Array of poll fields to include, if the tweet has a poll, e.g., 'options', 'end_datetime'.
-   * @param {string[]} [options.mediaFields] - Array of media fields to include, if the tweet includes media, e.g., 'url', 'preview_image_url'.
-   * @param {string[]} [options.userFields] - Array of user fields to include, if user information is requested, e.g., 'username', 'verified'.
-   * @param {string[]} [options.placeFields] - Array of place fields to include, if the tweet includes location data, e.g., 'full_name', 'country'.
-   * @returns {Promise<TweetV2 | null>} - The tweet data, including requested expansions and fields.
-   */
-  async getTweetV2(
-    id: string,
-    options: {
-      expansions?: TTweetv2Expansion[];
-      tweetFields?: TTweetv2TweetField[];
-      pollFields?: TTweetv2PollField[];
-      mediaFields?: TTweetv2MediaField[];
-      userFields?: TTweetv2UserField[];
-      placeFields?: TTweetv2PlaceField[];
-    } = defaultOptions,
-  ): Promise<Tweet | null> {
-    return await getTweetV2(id, this.auth, options);
-  }
-
-  /**
-   * Fetches multiple tweets by IDs using the Twitter API v2.
-   * Allows specifying optional expansions and fields for more detailed data.
-   *
-   * @param {string[]} ids - Array of tweet IDs to fetch.
-   * @param {Object} [options] - Optional parameters to customize the tweet data.
-   * @param {string[]} [options.expansions] - Array of expansions to include, e.g., 'attachments.poll_ids'.
-   * @param {string[]} [options.tweetFields] - Array of tweet fields to include, e.g., 'created_at', 'public_metrics'.
-   * @param {string[]} [options.pollFields] - Array of poll fields to include, if tweets contain polls, e.g., 'options', 'end_datetime'.
-   * @param {string[]} [options.mediaFields] - Array of media fields to include, if tweets contain media, e.g., 'url', 'preview_image_url'.
-   * @param {string[]} [options.userFields] - Array of user fields to include, if user information is requested, e.g., 'username', 'verified'.
-   * @param {string[]} [options.placeFields] - Array of place fields to include, if tweets contain location data, e.g., 'full_name', 'country'.
-   * @returns {Promise<TweetV2[]> } - Array of tweet data, including requested expansions and fields.
-   */
-  async getTweetsV2(
-    ids: string[],
-    options: {
-      expansions?: TTweetv2Expansion[];
-      tweetFields?: TTweetv2TweetField[];
-      pollFields?: TTweetv2PollField[];
-      mediaFields?: TTweetv2MediaField[];
-      userFields?: TTweetv2UserField[];
-      placeFields?: TTweetv2PlaceField[];
-    } = defaultOptions,
-  ): Promise<Tweet[]> {
-    return await getTweetsV2(ids, this.auth, options);
-  }
-
-  /**
    * Returns if the scraper has a guest token. The token may not be valid.
    * @returns `true` if the scraper has a guest token; otherwise `false`.
    */
@@ -726,14 +532,6 @@ export class Scraper {
   }
 
   /**
-   * Returns the currently logged in user
-   * @returns The currently logged in user
-   */
-  public async me(): Promise<Profile | undefined> {
-    return this.auth.me();
-  }
-
-  /**
    * Login to Twitter as a real Twitter account. This enables running
    * searches.
    * @param username The username of the Twitter account to login with.
@@ -746,23 +544,10 @@ export class Scraper {
     password: string,
     email?: string,
     twoFactorSecret?: string,
-    appKey?: string,
-    appSecret?: string,
-    accessToken?: string,
-    accessSecret?: string,
   ): Promise<void> {
     // Swap in a real authorizer for all requests
     const userAuth = new TwitterUserAuth(this.token, this.getAuthOptions());
-    await userAuth.login(
-      username,
-      password,
-      email,
-      twoFactorSecret,
-      appKey,
-      appSecret,
-      accessToken,
-      accessSecret,
-    );
+    await userAuth.login(username, password, email, twoFactorSecret);
     this.auth = userAuth;
     this.authTrends = userAuth;
   }
@@ -840,84 +625,6 @@ export class Scraper {
     return this;
   }
 
-  /**
-   * Sends a quote tweet.
-   * @param text The text of the tweet.
-   * @param quotedTweetId The ID of the tweet to quote.
-   * @param options Optional parameters, such as media data.
-   * @returns The response from the Twitter API.
-   */
-  public async sendQuoteTweet(
-    text: string,
-    quotedTweetId: string,
-    options?: {
-      mediaData: { data: Buffer; mediaType: string }[];
-    },
-  ) {
-    return await createQuoteTweetRequest(
-      text,
-      quotedTweetId,
-      this.auth,
-      options?.mediaData,
-    );
-  }
-
-  /**
-   * Likes a tweet with the given tweet ID.
-   * @param tweetId The ID of the tweet to like.
-   * @returns A promise that resolves when the tweet is liked.
-   */
-  public async likeTweet(tweetId: string): Promise<void> {
-    // Call the likeTweet function from tweets.ts
-    await likeTweet(tweetId, this.auth);
-  }
-
-  /**
-   * Retweets a tweet with the given tweet ID.
-   * @param tweetId The ID of the tweet to retweet.
-   * @returns A promise that resolves when the tweet is retweeted.
-   */
-  public async retweet(tweetId: string): Promise<void> {
-    // Call the retweet function from tweets.ts
-    await retweet(tweetId, this.auth);
-  }
-
-  /**
-   * Follows a user with the given user ID.
-   * @param userId The user ID of the user to follow.
-   * @returns A promise that resolves when the user is followed.
-   */
-  public async followUser(userName: string): Promise<void> {
-    // Call the followUser function from relationships.ts
-    await followUser(userName, this.auth);
-  }
-
-  /**
-   * Fetches direct message conversations
-   * @param count Number of conversations to fetch (default: 50)
-   * @param cursor Pagination cursor for fetching more conversations
-   * @returns Array of DM conversations and other details
-   */
-  public async getDirectMessageConversations(
-    userId: string,
-    cursor?: string,
-  ): Promise<DirectMessagesResponse> {
-    return await getDirectMessageConversations(userId, this.auth, cursor);
-  }
-
-  /**
-   * Sends a direct message to a user.
-   * @param conversationId The ID of the conversation to send the message to.
-   * @param text The text of the message to send.
-   * @returns The response from the Twitter API.
-   */
-  public async sendDirectMessage(
-    conversationId: string,
-    text: string,
-  ): Promise<SendDirectMessageResponse> {
-    return await sendDirectMessage(this.auth, conversationId, text);
-  }
-
   private getAuthOptions(): Partial<TwitterAuthOptions> {
     return {
       fetch: this.options?.fetch,
@@ -931,180 +638,5 @@ export class Scraper {
     }
 
     return res.value;
-  }
-
-  /**
-   * Retrieves the details of an Audio Space by its ID.
-   * @param id The ID of the Audio Space.
-   * @returns The details of the Audio Space.
-   */
-  public async getAudioSpaceById(id: string): Promise<AudioSpace> {
-    const variables = {
-      id,
-      isMetatagsQuery: false,
-      withReplays: true,
-      withListeners: true,
-    };
-
-    return await fetchAudioSpaceById(variables, this.auth);
-  }
-
-  /**
-   * Retrieves available space topics.
-   * @returns An array of space topics.
-   */
-  public async browseSpaceTopics(): Promise<Subtopic[]> {
-    return await fetchBrowseSpaceTopics(this.auth);
-  }
-
-  /**
-   * Retrieves available communities.
-   * @returns An array of communities.
-   */
-  public async communitySelectQuery(): Promise<Community[]> {
-    return await fetchCommunitySelectQuery(this.auth);
-  }
-
-  /**
-   * Retrieves the status of an Audio Space stream by its media key.
-   * @param mediaKey The media key of the Audio Space.
-   * @returns The status of the Audio Space stream.
-   */
-  public async getAudioSpaceStreamStatus(
-    mediaKey: string,
-  ): Promise<LiveVideoStreamStatus> {
-    return await fetchLiveVideoStreamStatus(mediaKey, this.auth);
-  }
-
-  /**
-   * Retrieves the status of an Audio Space by its ID.
-   * This method internally fetches the Audio Space to obtain the media key,
-   * then retrieves the stream status using the media key.
-   * @param audioSpaceId The ID of the Audio Space.
-   * @returns The status of the Audio Space stream.
-   */
-  public async getAudioSpaceStatus(
-    audioSpaceId: string,
-  ): Promise<LiveVideoStreamStatus> {
-    const audioSpace = await this.getAudioSpaceById(audioSpaceId);
-
-    const mediaKey = audioSpace.metadata.media_key;
-    if (!mediaKey) {
-      throw new Error('Media Key not found in Audio Space metadata.');
-    }
-
-    return await this.getAudioSpaceStreamStatus(mediaKey);
-  }
-
-  /**
-   * Authenticates Periscope to obtain a token.
-   * @returns The Periscope authentication token.
-   */
-  public async authenticatePeriscope(): Promise<string> {
-    return await fetchAuthenticatePeriscope(this.auth);
-  }
-
-  /**
-   * Logs in to Twitter via Proxsee using the Periscope JWT.
-   * @param jwt The JWT obtained from AuthenticatePeriscope.
-   * @returns The response containing the cookie and user information.
-   */
-  public async loginTwitterToken(
-    jwt: string,
-  ): Promise<LoginTwitterTokenResponse> {
-    return await fetchLoginTwitterToken(jwt, this.auth);
-  }
-
-  /**
-   * Orchestrates the flow: get token -> login -> return Periscope cookie
-   */
-  public async getPeriscopeCookie(): Promise<string> {
-    const periscopeToken = await this.authenticatePeriscope();
-
-    const loginResponse = await this.loginTwitterToken(periscopeToken);
-
-    return loginResponse.cookie;
-  }
-
-  /**
-   * Fetches a article (long form tweet) by its ID.
-   * @param id The ID of the article to fetch. In the format of (http://x.com/i/article/id)
-   * @returns The {@link TimelineArticle} object, or `null` if it couldn't be fetched.
-   */
-  public getArticle(id: string): Promise<TimelineArticle | null> {
-    return getArticle(id, this.auth);
-  }
-
-  /**
-   * Creates a new conversation with Grok.
-   * @returns A promise that resolves to the conversation ID string.
-   */
-  public async createGrokConversation(): Promise<string> {
-    return await createGrokConversation(this.auth);
-  }
-
-  /**
-   * Interact with Grok in a chat-like manner.
-   * @param options The options for the Grok chat interaction.
-   * @param {GrokMessage[]} options.messages - Array of messages in the conversation.
-   * @param {string} [options.conversationId] - Optional ID of an existing conversation.
-   * @param {boolean} [options.returnSearchResults] - Whether to return search results.
-   * @param {boolean} [options.returnCitations] - Whether to return citations.
-   * @returns A promise that resolves to the Grok chat response.
-   */
-  public async grokChat(options: GrokChatOptions): Promise<GrokChatResponse> {
-    return await grokChat(options, this.auth);
-  }
-
-  /**
-   * Retrieves all users who retweeted the given tweet.
-   * @param tweetId The ID of the tweet.
-   * @returns An array of users (retweeters).
-   */
-  public async getRetweetersOfTweet(tweetId: string): Promise<Retweeter[]> {
-    return await getAllRetweeters(tweetId, this.auth);
-  }
-
-  /**
-   * Fetches all tweets quoting a given tweet ID by chaining requests
-   * until no more pages are available.
-   * @param quotedTweetId The tweet ID to find quotes of.
-   * @param maxTweetsPerPage Max tweets per page (default 20).
-   * @returns An array of all Tweet objects referencing the given tweet.
-   */
-  public async getAllQuotedTweets(
-    quotedTweetId: string,
-    maxTweetsPerPage = 20,
-  ): Promise<Tweet[]> {
-    const allQuotes: Tweet[] = [];
-    let cursor: string | undefined;
-    let prevCursor: string | undefined;
-
-    while (true) {
-      const page = await fetchQuotedTweetsPage(
-        quotedTweetId,
-        maxTweetsPerPage,
-        this.auth,
-        cursor,
-      );
-
-      // If there's no new tweets, stop
-      if (!page.tweets || page.tweets.length === 0) {
-        break;
-      }
-
-      allQuotes.push(...page.tweets);
-
-      // If next is missing or same => stop
-      if (!page.next || page.next === cursor || page.next === prevCursor) {
-        break;
-      }
-
-      // Move cursors
-      prevCursor = cursor;
-      cursor = page.next;
-    }
-
-    return allQuotes;
   }
 }

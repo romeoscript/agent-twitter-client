@@ -1,4 +1,18 @@
 import { Scraper } from './scraper';
+import { getScraper } from './test-utils';
+
+test('scraper can fetch home timeline', async () => {
+  const scraper = await getScraper();
+
+  const count = 20;
+  const seenTweetIds: string[] = [];
+
+  const homeTimeline = await scraper.fetchHomeTimeline(count, seenTweetIds);
+  console.log(homeTimeline);
+  expect(homeTimeline).toBeDefined();
+  expect(homeTimeline?.length).toBeGreaterThan(0);
+  expect(homeTimeline[0]?.rest_id).toBeDefined();
+}, 30000);
 
 test('scraper can fetch following timeline', async () => {
   const scraper = await getScraper();
