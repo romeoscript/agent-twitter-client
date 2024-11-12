@@ -3,7 +3,6 @@ import { updateCookieJar } from './requests';
 import { Headers } from 'headers-polyfill';
 import { FetchTransformOptions } from './api';
 import { TwitterApi } from 'twitter-api-v2';
-import { Profile } from './profile';
 
 export interface TwitterAuthOptions {
   fetch: typeof fetch;
@@ -38,11 +37,6 @@ export interface TwitterAuth {
    * @returns `true` if a user is logged-in; otherwise `false`.
    */
   isLoggedIn(): Promise<boolean>;
-
-  /**
-   * Fetches the current user's profile.
-   */
-  me(): Promise<Profile | undefined>;
 
   /**
    * Logs into a Twitter account.
@@ -157,10 +151,6 @@ export class TwitterGuestAuth implements TwitterAuth {
     return Promise.resolve(false);
   }
 
-  async me(): Promise<Profile | undefined> {
-    return undefined;
-  }
-
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   login(_username: string, _password: string, _email?: string): Promise<void> {
     return this.updateGuestToken();
@@ -211,18 +201,12 @@ export class TwitterGuestAuth implements TwitterAuth {
     headers.set('cookie', await this.getCookieString());
   }
 
-  protected async getCookies(): Promise<Cookie[]> {
-    const cookies = await Promise.all([
-      this.jar.getCookies(this.getCookieJarUrl()),
-      this.jar.getCookies('https://twitter.com'),
-      this.jar.getCookies('https://x.com'),
-    ]);
-    return cookies.flat();
+  protected getCookies(): Promise<Cookie[]> {
+    return this.jar.getCookies(this.getCookieJarUrl());
   }
 
-  protected async getCookieString(): Promise<string> {
-    const cookies = await this.getCookies();
-    return cookies.map((cookie) => `${cookie.key}=${cookie.value}`).join('; ');
+  protected getCookieString(): Promise<string> {
+    return this.jar.getCookieString(this.getCookieJarUrl());
   }
 
   protected async removeCookie(key: string): Promise<void> {
@@ -242,14 +226,14 @@ export class TwitterGuestAuth implements TwitterAuth {
   private getCookieJarUrl(): string {
     return typeof document !== 'undefined'
       ? document.location.toString()
-      : 'https://x.com';
+      : 'https://twitter.com';
   }
 
   /**
    * Updates the authentication state with a new guest token from the Twitter API.
    */
   protected async updateGuestToken() {
-    const guestActivateUrl = 'https://api.x.com/1.1/guest/activate.json';
+    const guestActivateUrl = 'https://api.twitter.com/1.1/guest/activate.json';
 
     const headers = new Headers({
       Authorization: `Bearer ${this.bearerToken}`,
@@ -291,8 +275,7 @@ export class TwitterGuestAuth implements TwitterAuth {
       !this.hasToken() ||
       (this.guestCreatedAt != null &&
         this.guestCreatedAt <
-        new Date(new Date().valueOf() - 3 * 60 * 60 * 1000))
+          new Date(new Date().valueOf() - 3 * 60 * 60 * 1000))
     );
   }
 }
-

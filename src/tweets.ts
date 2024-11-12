@@ -46,6 +46,23 @@ export interface PlaceRaw {
   };
 }
 
+export interface PollOption {
+  label: string;
+  votes?: number;
+}
+
+export interface PollData {
+  options: PollOption[];
+  durationMinutes: number;
+}
+
+export interface PollResult {
+  id: string;
+  options: PollOption[];
+  totalVotes: number;
+  endDateTime: Date;
+}
+
 /**
  * A parsed Tweet object.
  */
@@ -160,6 +177,41 @@ export async function fetchTweetsAndReplies(
   }
 
   return parseTimelineTweetsV2(res.value);
+}
+
+export async function createCreateTweetRequestV2(
+  text: string,
+  auth: TwitterAuth,
+  tweetId?: string,
+  options?: {
+    poll?: PollData;
+  },
+) {
+  const v2client = auth.getV2Client();
+  if (v2client == null) {
+    throw new Error('V2 client is not initialized');
+  }
+  const { poll } = options || {};
+  let tweetConfig = {};
+  if (poll) {
+    tweetConfig = {
+      text,
+      poll: {
+        options: poll?.options.map((option) => option.label) ?? [],
+        duration_minutes: poll?.durationMinutes ?? 60,
+      },
+    };
+  } else if (tweetId) {
+    tweetConfig = {
+      text,
+      reply: {
+        in_reply_to_tweet_id: tweetId,
+      },
+    };
+  }
+  const tweetResponse = await v2client.v2.tweet(tweetConfig);
+  // TODO: extract poll results from response
+  return await getTweet(tweetResponse.data.id, auth);
 }
 
 export async function createCreateTweetRequest(

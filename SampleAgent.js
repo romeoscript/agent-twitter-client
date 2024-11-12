@@ -37,15 +37,7 @@ async function main() {
   //     },
   //   },
   // );
-  // console.log(await scraper.getTweet('1856441982811529619'));
-  // const tweet = await scraper.getTweetV2('1856441982811529619');
-  // console.log({ tweet });
-  // console.log('tweet', tweet);
-  // const tweets = await scraper.getTweetsV2([
-  //   '1856441982811529619',
-  //   '1856429655215260130',
-  // ]);
-  // console.log('tweets', tweets);
+  // console.log(await scraper.getTweet('id'));
 }
 
 main();

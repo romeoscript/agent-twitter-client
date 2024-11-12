@@ -42,9 +42,11 @@ import {
   getTweetsAndRepliesByUserId,
   getTweetsAndReplies,
   createCreateTweetRequest,
+  PollData,
+  createCreateTweetRequestV2,
 } from './tweets';
 import { parseTimelineTweetsV2, TimelineV2 } from './timeline-v2';
-import { fetchHomeTimeline, HomeTimelineResponse } from './timeline-home';
+import { fetchHomeTimeline } from './timeline-home';
 
 const twUrl = 'https://twitter.com';
 const UserTweetsUrl =
@@ -415,6 +417,29 @@ export class Scraper {
   }
 
   /**
+   * Send a tweet
+   * @param text The text of the tweet
+   * @param tweetId The id of the tweet to reply to
+   * @param options The options for the tweet
+   * @returns
+   */
+
+  async sendTweetV2(
+    text: string,
+    replyToTweetId?: string,
+    options?: {
+      poll?: PollData;
+    },
+  ) {
+    return await createCreateTweetRequestV2(
+      text,
+      this.auth,
+      replyToTweetId,
+      options,
+    );
+  }
+
+  /**
    * Fetches tweets and replies from a Twitter user.
    * @param user The user whose tweets should be returned.
    * @param maxTweets The maximum number of tweets to return. Defaults to `200`.
@@ -544,10 +569,23 @@ export class Scraper {
     password: string,
     email?: string,
     twoFactorSecret?: string,
+    appKey?: string,
+    appSecret?: string,
+    accessToken?: string,
+    accessSecret?: string,
   ): Promise<void> {
     // Swap in a real authorizer for all requests
     const userAuth = new TwitterUserAuth(this.token, this.getAuthOptions());
-    await userAuth.login(username, password, email, twoFactorSecret);
+    await userAuth.login(
+      username,
+      password,
+      email,
+      twoFactorSecret,
+      appKey,
+      appSecret,
+      accessToken,
+      accessSecret,
+    );
     this.auth = userAuth;
     this.authTrends = userAuth;
   }
