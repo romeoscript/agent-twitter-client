@@ -625,6 +625,26 @@ export class Scraper {
     return this;
   }
 
+  /**
+   * Send a tweet with optional media attachments
+   * @param text The text of the tweet
+   * @param mediaData Array of Buffer containing image data
+   * @param tweetId Optional ID of tweet to reply to
+   * @returns Response from Twitter API
+   */
+  async sendTweetWithMedia(
+    text: string,
+    mediaData: Buffer[],
+    replyToTweetId?: string,
+  ) {
+    return await createCreateTweetRequest(
+      text,
+      this.auth,
+      replyToTweetId,
+      mediaData,
+    );
+  }
+
   private getAuthOptions(): Partial<TwitterAuthOptions> {
     return {
       fetch: this.options?.fetch,
