@@ -49,7 +49,14 @@ import {
 } from './tweets';
 import { parseTimelineTweetsV2, TimelineV2 } from './timeline-v2';
 import { fetchHomeTimeline } from './timeline-home';
-import { TweetV2 } from 'twitter-api-v2';
+import {
+  TTweetv2Expansion,
+  TTweetv2MediaField,
+  TTweetv2PlaceField,
+  TTweetv2PollField,
+  TTweetv2TweetField,
+  TTweetv2UserField,
+} from 'twitter-api-v2';
 
 const twUrl = 'https://twitter.com';
 const UserTweetsUrl =
@@ -557,15 +564,15 @@ export class Scraper {
    */
   async getTweetV2(
     id: string,
-    options?: {
-      expansions?: string[];
-      tweetFields?: string[];
-      pollFields?: string[];
-      mediaFields?: string[];
-      userFields?: string[];
-      placeFields?: string[];
+    options: {
+      expansions?: TTweetv2Expansion[];
+      tweetFields?: TTweetv2TweetField[];
+      pollFields?: TTweetv2PollField[];
+      mediaFields?: TTweetv2MediaField[];
+      userFields?: TTweetv2UserField[];
+      placeFields?: TTweetv2PlaceField[];
     },
-  ): Promise<TweetV2 | null> {
+  ): Promise<Tweet | null> {
     return await getTweetV2(id, this.auth, options);
   }
 
@@ -585,15 +592,15 @@ export class Scraper {
    */
   async getTweetsV2(
     ids: string[],
-    options?: {
-      expansions?: string[];
-      tweetFields?: string[];
-      pollFields?: string[];
-      mediaFields?: string[];
-      userFields?: string[];
-      placeFields?: string[];
+    options: {
+      expansions?: TTweetv2Expansion[];
+      tweetFields?: TTweetv2TweetField[];
+      pollFields?: TTweetv2PollField[];
+      mediaFields?: TTweetv2MediaField[];
+      userFields?: TTweetv2UserField[];
+      placeFields?: TTweetv2PlaceField[];
     },
-  ): Promise<TweetV2[]> {
+  ): Promise<Tweet[]> {
     return await getTweetsV2(ids, this.auth, options);
   }
 

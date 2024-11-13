@@ -37,20 +37,14 @@ async function main() {
   //     },
   //   },
   // );
-  // console.log(await scraper.getTweet('id'));
-  // const tweet = await scraper.getTweetV2('1856441982811529619', {
-  //   expansions: ['attachments.poll_ids'],
-  //   pollFields: ['options', 'end_datetime'],
-  // });
+  // console.log(await scraper.getTweet('1856441982811529619'));
+  // const tweet = await scraper.getTweetV2('1856441982811529619');
+  // console.log({ tweet });
   // console.log('tweet', tweet);
-  // const tweets = await scraper.getTweetsV2(
-  //   ['1856441982811529619', '1856429655215260130'],
-  //   {
-  //     expansions: ['attachments.poll_ids', 'attachments.media_keys'],
-  //     pollFields: ['options', 'end_datetime'],
-  //     mediaFields: ['url', 'preview_image_url'],
-  //   },
-  // );
+  // const tweets = await scraper.getTweetsV2([
+  //   '1856441982811529619',
+  //   '1856429655215260130',
+  // ]);
   // console.log('tweets', tweets);
 }
 
