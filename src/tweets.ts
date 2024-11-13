@@ -14,6 +14,7 @@ import { getTweetTimeline } from './timeline-async';
 import { apiRequestFactory } from './api-data';
 import { ListTimeline, parseListTimelineTweets } from './timeline-list';
 import { updateCookieJar } from './requests';
+import { TweetV2 } from 'twitter-api-v2';
 
 export interface Mention {
   id: string;
@@ -530,6 +531,83 @@ export async function getTweet(
 
   const tweets = parseThreadedConversation(res.value);
   return tweets.find((tweet) => tweet.id === id) ?? null;
+}
+
+export async function getTweetV2(
+  id: string,
+  auth: TwitterAuth,
+  options?: {
+    expansions?: string[];
+    tweetFields?: string[];
+    pollFields?: string[];
+    mediaFields?: string[];
+    userFields?: string[];
+    placeFields?: string[];
+  },
+): Promise<TweetV2 | null> {
+  const v2client = auth.getV2Client();
+  if (!v2client) {
+    throw new Error('V2 client is not initialized');
+  }
+
+  try {
+    const tweetData = await v2client.v2.singleTweet(id, {
+      expansions: options?.expansions,
+      'tweet.fields': options?.tweetFields,
+      'poll.fields': options?.pollFields,
+      'media.fields': options?.mediaFields,
+      'user.fields': options?.userFields,
+      'place.fields': options?.placeFields,
+    });
+
+    if (!tweetData?.data) {
+      console.warn(`Tweet data not found for ID: ${id}`);
+      return null;
+    }
+
+    return tweetData.data;
+  } catch (error) {
+    console.error(`Error fetching tweet ${id}:`, error);
+    return null;
+  }
+}
+
+export async function getTweetsV2(
+  ids: string[],
+  auth: TwitterAuth,
+  options?: {
+    expansions?: string[];
+    tweetFields?: string[];
+    pollFields?: string[];
+    mediaFields?: string[];
+    userFields?: string[];
+    placeFields?: string[];
+  },
+): Promise<TweetV2[]> {
+  const v2client = auth.getV2Client();
+  if (!v2client) {
+    return [];
+  }
+
+  try {
+    const tweetData = await v2client.v2.tweets(ids, {
+      expansions: options?.expansions,
+      'tweet.fields': options?.tweetFields,
+      'poll.fields': options?.pollFields,
+      'media.fields': options?.mediaFields,
+      'user.fields': options?.userFields,
+      'place.fields': options?.placeFields,
+    });
+
+    if (!tweetData?.data) {
+      console.warn(`No tweet data found for IDs: ${ids.join(', ')}`);
+      return [];
+    }
+    return tweetData?.data;
+  } catch (error) {
+    console.error(`Error fetching tweets for IDs: ${ids.join(', ')}`, error);
+    return [];
+  }
 }
 
 export async function getTweetAnonymous(

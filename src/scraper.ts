@@ -44,9 +44,12 @@ import {
   createCreateTweetRequest,
   PollData,
   createCreateTweetRequestV2,
+  getTweetV2,
+  getTweetsV2,
 } from './tweets';
 import { parseTimelineTweetsV2, TimelineV2 } from './timeline-v2';
 import { fetchHomeTimeline } from './timeline-home';
+import { TweetV2 } from 'twitter-api-v2';
 
 const twUrl = 'https://twitter.com';
 const UserTweetsUrl =
@@ -536,6 +539,62 @@ export class Scraper {
     } else {
       return getTweetAnonymous(id, this.auth);
     }
+  }
+
+  /**
+   * Fetches a single tweet by ID using the Twitter API v2.
+   * Allows specifying optional expansions and fields for more detailed data.
+   *
+   * @param {string} id - The ID of the tweet to fetch.
+   * @param {Object} [options] - Optional parameters to customize the tweet data.
+   * @param {string[]} [options.expansions] - Array of expansions to include, e.g., 'attachments.poll_ids'.
+   * @param {string[]} [options.tweetFields] - Array of tweet fields to include, e.g., 'created_at', 'public_metrics'.
+   * @param {string[]} [options.pollFields] - Array of poll fields to include, if the tweet has a poll, e.g., 'options', 'end_datetime'.
+   * @param {string[]} [options.mediaFields] - Array of media fields to include, if the tweet includes media, e.g., 'url', 'preview_image_url'.
+   * @param {string[]} [options.userFields] - Array of user fields to include, if user information is requested, e.g., 'username', 'verified'.
+   * @param {string[]} [options.placeFields] - Array of place fields to include, if the tweet includes location data, e.g., 'full_name', 'country'.
+   * @returns {Promise<TweetV2 | null>} - The tweet data, including requested expansions and fields.
+   */
+  async getTweetV2(
+    id: string,
+    options?: {
+      expansions?: string[];
+      tweetFields?: string[];
+      pollFields?: string[];
+      mediaFields?: string[];
+      userFields?: string[];
+      placeFields?: string[];
+    },
+  ): Promise<TweetV2 | null> {
+    return await getTweetV2(id, this.auth, options);
+  }
+
+  /**
+   * Fetches multiple tweets by IDs using the Twitter API v2.
+   * Allows specifying optional expansions and fields for more detailed data.
+   *
+   * @param {string[]} ids - Array of tweet IDs to fetch.
+   * @param {Object} [options] - Optional parameters to customize the tweet data.
+   * @param {string[]} [options.expansions] - Array of expansions to include, e.g., 'attachments.poll_ids'.
+   * @param {string[]} [options.tweetFields] - Array of tweet fields to include, e.g., 'created_at', 'public_metrics'.
+   * @param {string[]} [options.pollFields] - Array of poll fields to include, if tweets contain polls, e.g., 'options', 'end_datetime'.
+   * @param {string[]} [options.mediaFields] - Array of media fields to include, if tweets contain media, e.g., 'url', 'preview_image_url'.
+   * @param {string[]} [options.userFields] - Array of user fields to include, if user information is requested, e.g., 'username', 'verified'.
+   * @param {string[]} [options.placeFields] - Array of place fields to include, if tweets contain location data, e.g., 'full_name', 'country'.
+   * @returns {Promise<TweetV2[]> } - Array of tweet data, including requested expansions and fields.
+   */
+  async getTweetsV2(
+    ids: string[],
+    options?: {
+      expansions?: string[];
+      tweetFields?: string[];
+      pollFields?: string[];
+      mediaFields?: string[];
+      userFields?: string[];
+      placeFields?: string[];
+    },
+  ): Promise<TweetV2[]> {
+    return await getTweetsV2(ids, this.auth, options);
   }
 
   /**

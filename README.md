@@ -1,6 +1,6 @@
 # agent-twitter-client
 
-This is a modified version of [@the-convocation/twitter-scraper](https://github.com/the-convocation/twitter-scraper) with added functionality for sending tweets and retweets. This package does not require Twitter API to use, and will run in both the browser and server.
+This is a modified version of [@the-convocation/twitter-scraper](https://github.com/the-convocation/twitter-scraper) with added functionality for sending tweets and retweets. This package does not require the Twitter API to use and will run in both the browser and server.
 
 ## Installation
 
@@ -27,9 +27,9 @@ TWITTER_ACCESS_TOKEN_SECRET=   # Access Token Secret for Twitter API v2
 
 ### Getting Twitter Cookies
 
-It is important that you use Twitter cookies so that you don't send a new login request to twitter every time you want to do something.
+It is important to use Twitter cookies to avoid sending a new login request to Twitter every time you want to perform an action.
 
-In your application, you will probably want to have a check for cookies. If you don't have cookies, log in with user auth credentials. Then, cache the cookies for future use.
+In your application, you will likely want to check for existing cookies. If cookies are not available, log in with user authentication credentials and cache the cookies for future use.
 
 ```ts
 const scraper = await getScraper({ authMethod: 'password' });
@@ -45,7 +45,8 @@ scraper.getCookies().then((cookies) => {
 ```ts
 const scraper = new Scraper();
 await scraper.login('username', 'password');
-// if using v2 functionality (currently needed to support polls)
+
+// If using v2 functionality (currently required to support polls)
 await scraper.login(
   'username',
   'password',
@@ -55,12 +56,14 @@ await scraper.login(
   'accessToken',
   'accessSecret',
 );
+
 const tweets = await scraper.getTweets('elonmusk', 10);
 const tweetsAndReplies = scraper.getTweetsAndReplies('elonmusk');
 const latestTweet = await scraper.getLatestTweet('elonmusk');
 const tweet = await scraper.getTweet('1234567890123456789');
 await scraper.sendTweet('Hello world!');
-// create a poll
+
+// Create a poll
 await scraper.sendTweetV2(
   `What's got you most hyped? Let us know! 🤖💸`,
   undefined,
@@ -76,6 +79,28 @@ await scraper.sendTweetV2(
     },
   },
 );
+```
+
+### Fetching Specific Tweet Data (V2)
+
+```ts
+// Fetch a single tweet with poll details
+const tweet = await scraper.getTweetV2('1856441982811529619', {
+  expansions: ['attachments.poll_ids'],
+  pollFields: ['options', 'end_datetime'],
+});
+console.log('tweet', tweet);
+
+// Fetch multiple tweets with poll and media details
+const tweets = await scraper.getTweetsV2(
+  ['1856441982811529619', '1856429655215260130'],
+  {
+    expansions: ['attachments.poll_ids', 'attachments.media_keys'],
+    pollFields: ['options', 'end_datetime'],
+    mediaFields: ['url', 'preview_image_url'],
+  },
+);
+console.log('tweets', tweets);
 ```
 
 ## API
