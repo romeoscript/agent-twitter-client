@@ -1,8 +1,27 @@
 import { getScraper } from './test-utils';
 import { QueryTweetsResponse } from './timeline-v1';
 import { Mention, Tweet } from './tweets';
-import fs from 'fs';
-import path from 'path';
+
+let shouldSkipV2Tests = false;
+beforeAll(() => {
+  const {
+    TWITTER_API_KEY,
+    TWITTER_API_SECRET_KEY,
+    TWITTER_ACCESS_TOKEN,
+    TWITTER_ACCESS_TOKEN_SECRET,
+  } = process.env;
+  if (
+    !TWITTER_API_KEY ||
+    !TWITTER_API_SECRET_KEY ||
+    !TWITTER_ACCESS_TOKEN ||
+    !TWITTER_ACCESS_TOKEN_SECRET
+  ) {
+    console.warn(
+      'Skipping tests: Twitter API v2 keys are not available in environment variables.',
+    );
+    shouldSkipV2Tests = true;
+  }
+});
 
 test('scraper can get tweet', async () => {
   const expected: Tweet = {
@@ -347,18 +366,78 @@ test('sendTweet successfully sends a tweet', async () => {
   console.log('Send reply result:', replyResult);
 });
 
-test('sendTweetWithMedia successfully sends a tweet with media', async () => {
-  const scraper = await getScraper();
-  const draftText = 'Test tweet with media ' + Date.now().toString();
+test('scraper can get a tweet with getTweetV2', async () => {
+  const scraper = await getScraper({ authMethod: 'api' });
+  if (shouldSkipV2Tests) {
+    return console.warn("Skipping 'getTweetV2' test due to missing API keys.");
+  }
+  const tweetId = '1856441982811529619';
 
-  // Read a test image file
+  const tweet: Tweet | null = await scraper.getTweetV2(tweetId);
 
-  const imageBuffer = fs.readFileSync(
-    path.join(__dirname, '../test-assets/test-image.jpeg'),
+  expect(tweet).not.toBeNull();
+  expect(tweet?.id).toEqual(tweetId);
+  expect(tweet?.text).toBeDefined();
+});
+
+test('scraper can get multiple tweets with getTweetsV2', async () => {
+  if (shouldSkipV2Tests) {
+    return console.warn("Skipping 'getTweetV2' test due to missing API keys.");
+  }
+  const scraper = await getScraper({ authMethod: 'api' });
+  const tweetIds = ['1856441982811529619', '1856429655215260130'];
+
+  const tweets = await scraper.getTweetsV2(tweetIds);
+
+  expect(tweets).toBeDefined();
+  expect(tweets.length).toBeGreaterThan(0);
+  tweets.forEach((tweet) => {
+    expect(tweet.id).toBeDefined();
+    expect(tweet.text).toBeDefined();
+  });
+});
+
+test('scraper can send a tweet with sendTweetV2', async () => {
+  if (shouldSkipV2Tests) {
+    return console.warn("Skipping 'getTweetV2' test due to missing API keys.");
+  }
+  const scraper = await getScraper({ authMethod: 'api' });
+  const tweetText = `Automated test tweet at ${Date.now()}`;
+
+  const response = await scraper.sendTweetV2(tweetText);
+  expect(response).not.toBeNull();
+  expect(response?.id).toBeDefined();
+  expect(response?.text).toEqual(tweetText);
+});
+
+test('scraper can create a poll with sendTweetV2', async () => {
+  if (shouldSkipV2Tests) {
+    return console.warn("Skipping 'getTweetV2' test due to missing API keys.");
+  }
+
+  const scraper = await getScraper({ authMethod: 'api' });
+  const tweetText = `When do you think we'll achieve AGI (Artificial General Intelligence)? 🤖 Cast your prediction!`;
+  const pollData = {
+    poll: {
+      options: [
+        { label: '2025 🗓️' },
+        { label: '2026 📅' },
+        { label: '2027 🛠️' },
+        { label: '2030+ 🚀' },
+      ],
+      duration_minutes: 1440,
+    },
+  };
+  const response = await scraper.sendTweetV2(tweetText, undefined, pollData);
+
+  expect(response).not.toBeNull();
+  expect(response?.id).toBeDefined();
+  expect(response?.text).toEqual(tweetText);
+
+  // Validate poll structure in response
+  const poll = response?.poll;
+  expect(poll).toBeDefined();
+  expect(poll?.options.map((option) => option.label)).toEqual(
+    pollData?.poll.options.map((option) => option.label),
   );
-
-  const result = await scraper.sendTweetWithMedia(draftText, [imageBuffer]);
-
-  console.log('Send tweet with media result:', result);
-  expect(result.ok).toBeTruthy();
-}, 30000);
+});

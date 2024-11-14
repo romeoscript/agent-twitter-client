@@ -1,7 +1,6 @@
 {
   "name": "agent-twitter-client",
   "description": "A twitter client for agents",
-  "type": "module",
   "keywords": [
     "x",
     "twitter",

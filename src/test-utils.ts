@@ -1,15 +1,16 @@
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import { Scraper } from './scraper';
 import fs from 'fs';
-import { CookieJar } from 'tough-cookie';
 
 export interface ScraperTestOptions {
   /**
-   * Force the scraper to use username/password to authenticate instead of cookies. Only used
-   * by this file for testing auth, but very unreliable. Should always use cookies to resume
-   * session when possible.
+   * Authentication method preference for the scraper.
+   * - 'api': Use Twitter API keys and tokens.
+   * - 'cookies': Resume session using cookies.
+   * - 'password': Use username/password for login.
+   * - 'anonymous': No authentication.
    */
-  authMethod: 'password' | 'cookies' | 'anonymous';
+  authMethod: 'api' | 'cookies' | 'password' | 'anonymous';
 }
 
 export async function getScraper(
@@ -19,6 +20,11 @@ export async function getScraper(
   const password = process.env['TWITTER_PASSWORD'];
   const email = process.env['TWITTER_EMAIL'];
   const twoFactorSecret = process.env['TWITTER_2FA_SECRET'];
+
+  const apiKey = process.env['TWITTER_API_KEY'];
+  const apiSecretKey = process.env['TWITTER_API_SECRET_KEY'];
+  const accessToken = process.env['TWITTER_ACCESS_TOKEN'];
+  const accessTokenSecret = process.env['TWITTER_ACCESS_TOKEN_SECRET'];
 
   let cookiesArray: any = null;
 
@@ -82,10 +88,33 @@ export async function getScraper(
     },
   });
 
-  if (options.authMethod === 'password') {
-    await scraper.login(username!, password!, email, twoFactorSecret);
-  } else if (options.authMethod === 'cookies') {
+  if (
+    options.authMethod === 'api' &&
+    username &&
+    password &&
+    apiKey &&
+    apiSecretKey &&
+    accessToken &&
+    accessTokenSecret
+  ) {
+    await scraper.login(
+      username,
+      password,
+      email,
+      twoFactorSecret,
+      apiKey,
+      apiSecretKey,
+      accessToken,
+      accessTokenSecret,
+    );
+  } else if (options.authMethod === 'cookies' && cookieStrings?.length) {
     await scraper.setCookies(cookieStrings);
+  } else if (options.authMethod === 'password' && username && password) {
+    await scraper.login(username, password, email, twoFactorSecret);
+  } else {
+    console.warn(
+      'No valid authentication method available. Ensure at least one of the following is configured: API credentials, cookies, or username/password.',
+    );
   }
 
   return scraper;

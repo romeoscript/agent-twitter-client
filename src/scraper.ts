@@ -46,6 +46,7 @@ import {
   createCreateTweetRequestV2,
   getTweetV2,
   getTweetsV2,
+  defaultOptions,
 } from './tweets';
 import { parseTimelineTweetsV2, TimelineV2 } from './timeline-v2';
 import { fetchHomeTimeline } from './timeline-home';
@@ -571,7 +572,7 @@ export class Scraper {
       mediaFields?: TTweetv2MediaField[];
       userFields?: TTweetv2UserField[];
       placeFields?: TTweetv2PlaceField[];
-    },
+    } = defaultOptions,
   ): Promise<Tweet | null> {
     return await getTweetV2(id, this.auth, options);
   }
@@ -599,7 +600,7 @@ export class Scraper {
       mediaFields?: TTweetv2MediaField[];
       userFields?: TTweetv2UserField[];
       placeFields?: TTweetv2PlaceField[];
-    },
+    } = defaultOptions,
   ): Promise<Tweet[]> {
     return await getTweetsV2(ids, this.auth, options);
   }
