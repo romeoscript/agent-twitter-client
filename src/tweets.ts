@@ -29,7 +29,7 @@ import {
   UserV2,
 } from 'twitter-api-v2';
 
-const defaultOptions = {
+export const defaultOptions = {
   expansions: [
     'attachments.poll_ids',
     'attachments.media_keys',
@@ -139,15 +139,15 @@ export interface PlaceRaw {
 }
 
 export interface PollData {
-  id: string;
-  end_datetime: string;
-  voting_status: string;
+  id?: string;
+  end_datetime?: string;
+  voting_status?: string;
   duration_minutes: number;
   options: PollOption[];
 }
 
 export interface PollOption {
-  position: number;
+  position?: number;
   label: string;
   votes?: number;
 }
@@ -282,7 +282,7 @@ export async function createCreateTweetRequestV2(
     throw new Error('V2 client is not initialized');
   }
   const { poll } = options || {};
-  let tweetConfig = {};
+  let tweetConfig;
   if (poll) {
     tweetConfig = {
       text,
@@ -297,6 +297,10 @@ export async function createCreateTweetRequestV2(
       reply: {
         in_reply_to_tweet_id: tweetId,
       },
+    };
+  } else {
+    tweetConfig = {
+      text,
     };
   }
   const tweetResponse = await v2client.v2.tweet(tweetConfig);
@@ -320,7 +324,7 @@ export function parseTweetV2ToV1(
   includes?: ApiV2Includes,
   defaultTweetData?: Tweet | null,
 ): Tweet {
-  let parsedTweet;
+  let parsedTweet: Tweet;
   if (defaultTweetData != null) {
     parsedTweet = defaultTweetData;
   }
@@ -822,7 +826,7 @@ export async function getTweetsV2(
           async (tweet) => await getTweetV2(tweet.id, auth, options),
         ),
       )
-    ).filter((tweet) => tweet !== null);
+    ).filter((tweet): tweet is Tweet => tweet !== null);
   } catch (error) {
     console.error(`Error fetching tweets for IDs: ${ids.join(', ')}`, error);
     return [];
