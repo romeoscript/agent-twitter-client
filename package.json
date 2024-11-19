@@ -32,7 +32,6 @@
   },
   "dependencies": {
     "@sinclair/typebox": "^0.32.20",
-    "agent-twitter-client": "^0.0.13",
     "headers-polyfill": "^3.1.2",
     "json-stable-stringify": "^1.0.2",
     "otpauth": "^9.2.2",
