@@ -1,5 +1,5 @@
 {
-  "name": "agent-twitter-client",
+  "name": "goat-x",
   "description": "A twitter client for agents",
   "keywords": [
     "x",
@@ -7,7 +7,7 @@
     "scraper",
     "crawler"
   ],
-  "version": "0.0.13",
+  "version": "1.1",
   "main": "dist/default/cjs/index.js",
   "types": "./dist/types/index.d.ts",
   "exports": {
