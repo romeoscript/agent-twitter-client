@@ -1,6 +1,8 @@
 import { getScraper } from './test-utils';
 import { QueryTweetsResponse } from './timeline-v1';
 import { Mention, Tweet } from './tweets';
+import fs from 'fs';
+import path from 'path';
 
 let shouldSkipV2Tests = false;
 beforeAll(() => {
@@ -441,3 +443,154 @@ test('scraper can create a poll with sendTweetV2', async () => {
     pollData?.poll.options.map((option) => option.label),
   );
 });
+
+test('scraper can send a tweet without media', async () => {
+  const scraper = await getScraper();
+  const draftText = 'Test tweet without media ' + Date.now().toString();
+
+  // Send a tweet without any media attachments
+  const result = await scraper.sendTweet(draftText);
+
+  // Log and verify the result
+  console.log('Send tweet without media result:', result);
+  expect(result.ok).toBeTruthy();
+}, 30000);
+
+test('scraper can send a tweet with image and video', async () => {
+  const scraper = await getScraper();
+  const draftText = 'Test tweet with image and video ' + Date.now().toString();
+
+  // Read test image and video files from the test-assets directory
+  const imageBuffer = fs.readFileSync(
+    path.join(__dirname, '../test-assets/test-image.jpeg')
+  );
+  const videoBuffer = fs.readFileSync(
+    path.join(__dirname, '../test-assets/test-video.mp4')
+  );
+
+  // Prepare media data array with both image and video
+  const mediaData = [
+    { data: imageBuffer, mediaType: 'image/jpeg' },
+    { data: videoBuffer, mediaType: 'video/mp4' },
+  ];
+
+  // Send a tweet with both image and video attachments
+  const result = await scraper.sendTweet(draftText, undefined, mediaData);
+
+  // Log and verify the result
+  console.log('Send tweet with image and video result:', result);
+  expect(result.ok).toBeTruthy();
+}, 30000);
+
+test('scraper can quote tweet without media', async () => {
+  const scraper = await getScraper();
+  const quotedTweetId = '1776276954435481937';
+  const quoteText = `Testing quote tweet without media ${Date.now()}`;
+
+  // Send a quote tweet without any media attachments
+  const response = await scraper.sendQuoteTweet(quoteText, quotedTweetId);
+
+  // Log and verify the response
+  console.log('Quote tweet without media result:', response);
+  expect(response.ok).toBeTruthy();
+}, 30000);
+
+test('scraper can quote tweet with image and video', async () => {
+  const scraper = await getScraper();
+  const quotedTweetId = '1776276954435481937';
+  const quoteText = `Testing quote tweet with image and video ${Date.now()}`;
+
+  // Read test image and video files from the test-assets directory
+  const imageBuffer = fs.readFileSync(
+    path.join(__dirname, '../test-assets/test-image.jpeg')
+  );
+  const videoBuffer = fs.readFileSync(
+    path.join(__dirname, '../test-assets/test-video.mp4')
+  );
+
+  // Prepare media data array with both image and video
+  const mediaData = [
+    { data: imageBuffer, mediaType: 'image/jpeg' },
+    { data: videoBuffer, mediaType: 'video/mp4' },
+  ];
+
+  // Send a quote tweet with both image and video attachments
+  const response = await scraper.sendQuoteTweet(quoteText, quotedTweetId, {
+    mediaData: mediaData,
+  });
+
+  // Log and verify the response
+  console.log('Quote tweet with image and video result:', response);
+  expect(response.ok).toBeTruthy();
+}, 30000);
+
+test('scraper can quote tweet with media', async () => {
+  const scraper = await getScraper();
+  const quotedTweetId = '1776276954435481937';
+  const quoteText = `Testing quote tweet with media ${Date.now()}`;
+
+  // Read test image file
+  const imageBuffer = fs.readFileSync(
+    path.join(__dirname, '../test-assets/test-image.jpeg')
+  );
+
+  // Prepare media data with the image
+  const mediaData = [
+    { data: imageBuffer, mediaType: 'image/jpeg' },
+  ];
+
+  // Send a quote tweet with the image attachment
+  const response = await scraper.sendQuoteTweet(quoteText, quotedTweetId, {
+    mediaData: mediaData,
+  });
+
+  // Log and verify the response
+  console.log('Quote tweet with media result:', response);
+  expect(response.ok).toBeTruthy();
+}, 30000);
+
+test('sendTweetWithMedia successfully sends a tweet with media', async () => {
+  const scraper = await getScraper();
+  const draftText = 'Test tweet with media ' + Date.now().toString();
+
+  // Read a test image file
+  const imageBuffer = fs.readFileSync(
+    path.join(__dirname, '../test-assets/test-image.jpeg')
+  );
+
+  // Prepare media data with the image
+  const mediaData = [
+    { data: imageBuffer, mediaType: 'image/jpeg' },
+  ];
+
+  // Send a tweet with the image attachment
+  const result = await scraper.sendTweet(draftText, undefined, mediaData);
+
+  // Log and verify the result
+  console.log('Send tweet with media result:', result);
+  expect(result.ok).toBeTruthy();
+}, 30000);
+
+test('scraper can like a tweet', async () => {
+  const scraper = await getScraper();
+  const tweetId = '1776276954435481937'; // Use a real tweet ID for testing
+
+  // Test should not throw an error
+  await expect(scraper.likeTweet(tweetId)).resolves.not.toThrow();
+});
+
+test('scraper can retweet', async () => {
+  const scraper = await getScraper();
+  const tweetId = '1776276954435481937';
+
+  // Test should not throw an error
+  await expect(scraper.retweet(tweetId)).resolves.not.toThrow();
+});
+
+test('scraper can follow user', async () => {
+  const scraper = await getScraper();
+  const username = 'elonmusk'; // Use a real username for testing
+
+  // Test should not throw an error
+  await expect(scraper.followUser(username)).resolves.not.toThrow();
+}, 30000);
