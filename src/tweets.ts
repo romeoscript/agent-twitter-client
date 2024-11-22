@@ -443,7 +443,7 @@ export async function createCreateTweetRequest(
   text: string,
   auth: TwitterAuth,
   tweetId?: string,
-  mediaData?: Buffer[],
+  mediaData?: { data: Buffer; mediaType: string }[],
 ) {
   const onboardingTaskUrl = 'https://api.twitter.com/1.1/onboarding/task.json';
 
@@ -476,7 +476,7 @@ export async function createCreateTweetRequest(
 
   if (mediaData && mediaData.length > 0) {
     const mediaIds = await Promise.all(
-      mediaData.map((data) => uploadMedia(data, auth)),
+      mediaData.map(({ data, mediaType }) => uploadMedia(data, auth, mediaType)),
     );
 
     variables.media.media_entities = mediaIds.map((id) => ({
@@ -886,33 +886,356 @@ interface MediaUploadResponse {
 async function uploadMedia(
   mediaData: Buffer,
   auth: TwitterAuth,
+  mediaType: string,
 ): Promise<string> {
-  const onboardingTaskUrl = 'https://upload.twitter.com/1.1/media/upload.json';
+  const uploadUrl = 'https://upload.twitter.com/1.1/media/upload.json';
 
+  // Get authentication headers
+  const cookies = await auth.cookieJar().getCookies(uploadUrl);
+  const xCsrfToken = cookies.find((cookie) => cookie.key === 'ct0');
+  const headers = new Headers({
+    authorization: `Bearer ${(auth as any).bearerToken}`,
+    cookie: await auth.cookieJar().getCookieString(uploadUrl),
+    'x-csrf-token': xCsrfToken?.value as string,
+  });
+
+  // Detect if media is a video based on mediaType
+  const isVideo = mediaType.startsWith('video/');
+
+  if (isVideo) {
+    // Handle video upload using chunked media upload
+    const mediaId = await uploadVideoInChunks(mediaData, mediaType);
+    return mediaId;
+  } else {
+    // Handle image upload
+    const form = new FormData();
+    form.append('media', new Blob([mediaData]));
+
+    const response = await fetch(uploadUrl, {
+      method: 'POST',
+      headers,
+      body: form,
+    });
+
+    await updateCookieJar(auth.cookieJar(), response.headers);
+
+    if (!response.ok) {
+      throw new Error(await response.text());
+    }
+
+    const data: MediaUploadResponse = await response.json();
+    return data.media_id_string;
+  }
+
+  // Function to upload video in chunks
+  async function uploadVideoInChunks(mediaData: Buffer, mediaType: string): Promise<string> {
+    // Initialize upload
+    const initParams = new URLSearchParams();
+    initParams.append('command', 'INIT');
+    initParams.append('media_type', mediaType);
+    initParams.append('total_bytes', mediaData.length.toString());
+
+    const initResponse = await fetch(uploadUrl, {
+      method: 'POST',
+      headers,
+      body: initParams,
+    });
+
+    if (!initResponse.ok) {
+      throw new Error(await initResponse.text());
+    }
+
+    const initData = await initResponse.json();
+    const mediaId = initData.media_id_string;
+
+    // Append upload in chunks
+    const segmentSize = 5 * 1024 * 1024; // 5 MB per chunk
+    let segmentIndex = 0;
+    for (let offset = 0; offset < mediaData.length; offset += segmentSize) {
+      const chunk = mediaData.slice(offset, offset + segmentSize);
+
+      const appendForm = new FormData();
+      appendForm.append('command', 'APPEND');
+      appendForm.append('media_id', mediaId);
+      appendForm.append('segment_index', segmentIndex.toString());
+      appendForm.append('media', new Blob([chunk]));
+
+      const appendResponse = await fetch(uploadUrl, {
+        method: 'POST',
+        headers,
+        body: appendForm,
+      });
+
+      if (!appendResponse.ok) {
+        throw new Error(await appendResponse.text());
+      }
+
+      segmentIndex++;
+    }
+
+    // Finalize upload
+    const finalizeParams = new URLSearchParams();
+    finalizeParams.append('command', 'FINALIZE');
+    finalizeParams.append('media_id', mediaId);
+
+    const finalizeResponse = await fetch(uploadUrl, {
+      method: 'POST',
+      headers,
+      body: finalizeParams,
+    });
+
+    if (!finalizeResponse.ok) {
+      throw new Error(await finalizeResponse.text());
+    }
+
+    const finalizeData = await finalizeResponse.json();
+
+    // Check processing status for videos
+    if (finalizeData.processing_info) {
+      await checkUploadStatus(mediaId);
+    }
+
+    return mediaId;
+  }
+
+  // Function to check upload status
+  async function checkUploadStatus(mediaId: string): Promise<void> {
+    let processing = true;
+    while (processing) {
+      await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait 5 seconds
+
+      const statusParams = new URLSearchParams();
+      statusParams.append('command', 'STATUS');
+      statusParams.append('media_id', mediaId);
+
+      const statusResponse = await fetch(`${uploadUrl}?${statusParams.toString()}`, {
+        method: 'GET',
+        headers,
+      });
+
+      if (!statusResponse.ok) {
+        throw new Error(await statusResponse.text());
+      }
+
+      const statusData = await statusResponse.json();
+      const state = statusData.processing_info.state;
+
+      if (state === 'succeeded') {
+        processing = false;
+      } else if (state === 'failed') {
+        throw new Error('Video processing failed');
+      }
+    }
+  }
+}
+
+// Function to create a quote tweet
+export async function createQuoteTweetRequest(
+  text: string,
+  quotedTweetId: string,
+  auth: TwitterAuth,
+  mediaData?: { data: Buffer; mediaType: string }[],
+) {
+  const onboardingTaskUrl = 'https://api.twitter.com/1.1/onboarding/task.json';
+
+  // Retrieve necessary cookies and tokens
   const cookies = await auth.cookieJar().getCookies(onboardingTaskUrl);
   const xCsrfToken = cookies.find((cookie) => cookie.key === 'ct0');
-
-  const form = new FormData();
-  form.append('media', new Blob([mediaData]));
 
   const headers = new Headers({
     authorization: `Bearer ${(auth as any).bearerToken}`,
     cookie: await auth.cookieJar().getCookieString(onboardingTaskUrl),
+    'content-type': 'application/json',
+    'User-Agent':
+      'Mozilla/5.0 (Linux; Android 11; Nokia G20) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.88 Mobile Safari/537.36',
+    'x-guest-token': (auth as any).guestToken,
+    'x-twitter-auth-type': 'OAuth2Client',
+    'x-twitter-active-user': 'yes',
     'x-csrf-token': xCsrfToken?.value as string,
   });
 
-  const response = await fetch(onboardingTaskUrl, {
-    method: 'POST',
-    headers,
-    body: form,
-  });
+  // Construct variables for the GraphQL request
+  const variables: Record<string, any> = {
+    tweet_text: text,
+    dark_request: false,
+    attachment_url: `https://twitter.com/twitter/status/${quotedTweetId}`,
+    media: {
+      media_entities: [],
+      possibly_sensitive: false,
+    },
+    semantic_annotation_ids: [],
+  };
 
+  // Handle media uploads if any media data is provided
+  if (mediaData && mediaData.length > 0) {
+    const mediaIds = await Promise.all(
+      mediaData.map(({ data, mediaType }) => uploadMedia(data, auth, mediaType)),
+    );
+
+    variables.media.media_entities = mediaIds.map((id) => ({
+      media_id: id,
+      tagged_users: [],
+    }));
+  }
+
+  // Send the GraphQL request to create a quote tweet
+  const response = await fetch(
+    'https://twitter.com/i/api/graphql/a1p9RWpkYKBjWv_I3WzS-A/CreateTweet',
+    {
+      headers,
+      body: JSON.stringify({
+        variables,
+        features: {
+          interactive_text_enabled: true,
+          longform_notetweets_inline_media_enabled: false,
+          responsive_web_text_conversations_enabled: false,
+          tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled: false,
+          vibe_api_enabled: false,
+          rweb_lists_timeline_redesign_enabled: true,
+          responsive_web_graphql_exclude_directive_enabled: true,
+          verified_phone_label_enabled: false,
+          creator_subscriptions_tweet_preview_api_enabled: true,
+          responsive_web_graphql_timeline_navigation_enabled: true,
+          responsive_web_graphql_skip_user_profile_image_extensions_enabled: false,
+          tweetypie_unmention_optimization_enabled: true,
+          responsive_web_edit_tweet_api_enabled: true,
+          graphql_is_translatable_rweb_tweet_is_translatable_enabled: true,
+          view_counts_everywhere_api_enabled: true,
+          longform_notetweets_consumption_enabled: true,
+          tweet_awards_web_tipping_enabled: false,
+          freedom_of_speech_not_reach_fetch_enabled: true,
+          standardized_nudges_misinfo: true,
+          longform_notetweets_rich_text_read_enabled: true,
+          responsive_web_enhance_cards_enabled: false,
+          subscriptions_verification_info_enabled: true,
+          subscriptions_verification_info_reason_enabled: true,
+          subscriptions_verification_info_verified_since_enabled: true,
+          super_follow_badge_privacy_enabled: false,
+          super_follow_exclusive_tweet_notifications_enabled: false,
+          super_follow_tweet_api_enabled: false,
+          super_follow_user_api_enabled: false,
+          android_graphql_skip_api_media_color_palette: false,
+          creator_subscriptions_subscription_count_enabled: false,
+          blue_business_profile_image_shape_enabled: false,
+          unified_cards_ad_metadata_container_dynamic_card_content_query_enabled: false,
+          rweb_video_timestamps_enabled: true,
+          c9s_tweet_anatomy_moderator_badge_enabled: true,
+          responsive_web_twitter_article_tweet_consumption_enabled: false
+        },
+        fieldToggles: {},
+      }),
+      method: 'POST',
+    },
+  );
+
+  // Update the cookie jar with any new cookies from the response
   await updateCookieJar(auth.cookieJar(), response.headers);
 
+  // Check for errors in the response
   if (!response.ok) {
     throw new Error(await response.text());
   }
 
-  const data: MediaUploadResponse = await response.json();
-  return data.media_id_string;
+  return response;
+}
+
+/**
+ * Likes a tweet with the given tweet ID.
+ * @param tweetId The ID of the tweet to like.
+ * @param auth The authentication object.
+ * @returns A promise that resolves when the tweet is liked.
+ */
+export async function likeTweet(
+  tweetId: string,
+  auth: TwitterAuth,
+): Promise<void> {
+  // Prepare the GraphQL endpoint and payload
+  const likeTweetUrl =
+    'https://twitter.com/i/api/graphql/lI07N6Otwv1PhnEgXILM7A/FavoriteTweet';
+
+  // Retrieve necessary cookies and tokens
+  const cookies = await auth.cookieJar().getCookies(likeTweetUrl);
+  const xCsrfToken = cookies.find((cookie) => cookie.key === 'ct0');
+
+  const headers = new Headers({
+    authorization: `Bearer ${(auth as any).bearerToken}`,
+    cookie: await auth.cookieJar().getCookieString(likeTweetUrl),
+    'content-type': 'application/json',
+    'x-guest-token': (auth as any).guestToken,
+    'x-twitter-auth-type': 'OAuth2Client',
+    'x-twitter-active-user': 'yes',
+    'x-csrf-token': xCsrfToken?.value as string,
+  });
+
+  const payload = {
+    variables: {
+      tweet_id: tweetId,
+    },
+  };
+
+  // Send the POST request to like the tweet
+  const response = await fetch(likeTweetUrl, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(payload),
+  });
+
+  // Update the cookie jar with any new cookies from the response
+  await updateCookieJar(auth.cookieJar(), response.headers);
+
+  // Check for errors in the response
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+}
+
+/**
+ * Retweets a tweet with the given tweet ID.
+ * @param tweetId The ID of the tweet to retweet.
+ * @param auth The authentication object.
+ * @returns A promise that resolves when the tweet is retweeted.
+ */
+export async function retweet(
+  tweetId: string,
+  auth: TwitterAuth,
+): Promise<void> {
+  // Prepare the GraphQL endpoint and payload
+  const retweetUrl =
+    'https://twitter.com/i/api/graphql/ojPdsZsimiJrUGLR1sjUtA/CreateRetweet';
+
+  // Retrieve necessary cookies and tokens
+  const cookies = await auth.cookieJar().getCookies(retweetUrl);
+  const xCsrfToken = cookies.find((cookie) => cookie.key === 'ct0');
+
+  const headers = new Headers({
+    authorization: `Bearer ${(auth as any).bearerToken}`,
+    cookie: await auth.cookieJar().getCookieString(retweetUrl),
+    'content-type': 'application/json',
+    'x-guest-token': (auth as any).guestToken,
+    'x-twitter-auth-type': 'OAuth2Client',
+    'x-twitter-active-user': 'yes',
+    'x-csrf-token': xCsrfToken?.value as string,
+  });
+
+  const payload = {
+    variables: {
+      tweet_id: tweetId,
+      dark_request: false,
+    },
+  };
+
+  // Send the POST request to retweet the tweet
+  const response = await fetch(retweetUrl, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(payload),
+  });
+
+  // Update the cookie jar with any new cookies from the response
+  await updateCookieJar(auth.cookieJar(), response.headers);
+
+  // Check for errors in the response
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
 }

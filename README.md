@@ -1,11 +1,11 @@
-# agent-twitter-client
+# goat-x
 
 This is a modified version of [@the-convocation/twitter-scraper](https://github.com/the-convocation/twitter-scraper) with added functionality for sending tweets and retweets. This package does not require the Twitter API to use and will run in both the browser and server.
 
 ## Installation
 
 ```sh
-npm install agent-twitter-client
+npm install goat-x
 ```
 
 ## Setup
@@ -169,6 +169,9 @@ const followerResults = await scraper.fetchProfileFollowers('12345', 100);
 
 // Fetch a page of who a user is following
 const followingResults = await scraper.fetchProfileFollowing('12345', 100);
+
+// Follow a user
+const followUserResults = await scraper.followUser('elonmusk');
 ```
 
 ### Trends
@@ -205,4 +208,68 @@ const latestTweet = await scraper.getLatestTweet('TwitterDev');
 
 // Get a specific tweet by ID
 const tweet = await scraper.getTweet('1234567890123456789');
+
+// Send a tweet
+const sendTweetResults = await scraper.sendTweet('Hello world!');
+
+// Send a quote tweet - Media files are optional
+const sendQuoteTweetResults = await scraper.sendQuoteTweet('Hello world!', '1234567890123456789', ['mediaFile1', 'mediaFile2']);
+
+// Retweet a tweet
+const retweetResults = await scraper.retweet('1234567890123456789');
+
+// Like a tweet
+const likeTweetResults = await scraper.likeTweet('1234567890123456789');
 ```
+
+## Sending Tweets with Media
+
+### Basic Tweet with Media
+```ts
+// Send a tweet with media attachments
+const mediaFiles = ['path/to/image1.jpg', 'path/to/video.mp4'];
+await scraper.sendTweet('Hello world!', undefined, mediaFiles);
+
+// Supported media types:
+// - Images: .jpg, .jpeg, .png, .gif
+// - Videos: .mp4
+```
+
+### Quote Tweet with Media
+```ts
+// Quote tweet with media attachments
+const tweetToQuote = '1234567890123456789';
+const text = 'Check this out!';
+const mediaFiles = ['path/to/image1.jpg', 'path/to/image2.png'];
+
+// The URL to the quoted tweet will be automatically appended
+await scraper.sendQuoteTweet(text, tweetToQuote, mediaFiles);
+```
+
+### CLI Usage Examples
+If you're using the CLI interface:
+
+```bash
+# Send tweet with single image
+send-tweet "Hello world!" path/to/image.jpg
+
+# Send tweet with multiple media files
+send-tweet "Check out these photos!" image1.jpg image2.png video.mp4
+
+# Send quote tweet with media
+send-quote-tweet 1234567890123456789 "Amazing thread!" image1.jpg video.mp4
+```
+
+### Media File Handling
+The scraper automatically:
+- Detects media types based on file extensions
+- Handles multiple media attachments (up to 4 images or 1 video)
+- Supports common image formats (JPG, PNG, GIF) and video format (MP4)
+
+### Notes
+- Maximum of 4 images per tweet
+- Only 1 video can be attached per tweet
+- Cannot mix images and videos in the same tweet
+- Maximum video file size: 512MB
+- Supported image formats: JPG, PNG, GIF
+- Supported video format: MP4

@@ -25,6 +25,7 @@ import {
   fetchProfileFollowers,
   getFollowing,
   getFollowers,
+  followUser
 } from './relationships';
 import { QueryProfilesResponse, QueryTweetsResponse } from './timeline-v1';
 import { getTrends } from './trends';
@@ -47,6 +48,9 @@ import {
   getTweetV2,
   getTweetsV2,
   defaultOptions,
+  createQuoteTweetRequest,
+  likeTweet,
+  retweet,
 } from './tweets';
 import { parseTimelineTweetsV2, TimelineV2 } from './timeline-v2';
 import { fetchHomeTimeline } from './timeline-home';
@@ -420,11 +424,16 @@ export class Scraper {
    * Send a tweet
    * @param text The text of the tweet
    * @param tweetId The id of the tweet to reply to
+   * @param mediaData Optional media data
    * @returns
    */
 
-  async sendTweet(text: string, replyToTweetId?: string) {
-    return await createCreateTweetRequest(text, this.auth, replyToTweetId);
+  async sendTweet(
+    text: string,
+    replyToTweetId?: string,
+    mediaData?: { data: Buffer; mediaType: string }[],
+  ) {
+    return await createCreateTweetRequest(text, this.auth, replyToTweetId, mediaData);
   }
 
   /**
@@ -731,23 +740,55 @@ export class Scraper {
   }
 
   /**
-   * Send a tweet with optional media attachments
-   * @param text The text of the tweet
-   * @param mediaData Array of Buffer containing image data
-   * @param tweetId Optional ID of tweet to reply to
-   * @returns Response from Twitter API
+   * Sends a quote tweet.
+   * @param text The text of the tweet.
+   * @param quotedTweetId The ID of the tweet to quote.
+   * @param options Optional parameters, such as media data.
+   * @returns The response from the Twitter API.
    */
-  async sendTweetWithMedia(
+  public async sendQuoteTweet(
     text: string,
-    mediaData: Buffer[],
-    replyToTweetId?: string,
+    quotedTweetId: string,
+    options?: {
+      mediaData: { data: Buffer; mediaType: string }[],
+    },
   ) {
-    return await createCreateTweetRequest(
+    return await createQuoteTweetRequest(
       text,
+      quotedTweetId,
       this.auth,
-      replyToTweetId,
-      mediaData,
+      options?.mediaData,
     );
+  }
+
+  /**
+   * Likes a tweet with the given tweet ID.
+   * @param tweetId The ID of the tweet to like.
+   * @returns A promise that resolves when the tweet is liked.
+   */
+  public async likeTweet(tweetId: string): Promise<void> {
+    // Call the likeTweet function from tweets.ts
+    await likeTweet(tweetId, this.auth);
+  }
+
+  /**
+   * Retweets a tweet with the given tweet ID.
+   * @param tweetId The ID of the tweet to retweet.
+   * @returns A promise that resolves when the tweet is retweeted.
+   */
+  public async retweet(tweetId: string): Promise<void> {
+    // Call the retweet function from tweets.ts
+    await retweet(tweetId, this.auth);
+  }
+
+  /**
+   * Follows a user with the given user ID.
+   * @param userId The user ID of the user to follow.
+   * @returns A promise that resolves when the user is followed.
+   */
+  public async followUser(userName: string): Promise<void> {
+    // Call the followUser function from relationships.ts
+    await followUser(userName, this.auth);
   }
 
   private getAuthOptions(): Partial<TwitterAuthOptions> {
