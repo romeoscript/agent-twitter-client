@@ -224,52 +224,49 @@ const likeTweetResults = await scraper.likeTweet('1234567890123456789');
 
 ## Sending Tweets with Media
 
+### Media Handling
+The scraper requires media files to be processed into a specific format before sending:
+- Media must be converted to Buffer format
+- Each media file needs its MIME type specified
+- This helps the scraper distinguish between image and video processing models
+
 ### Basic Tweet with Media
 ```ts
-// Send a tweet with media attachments
-const mediaFiles = ['path/to/image1.jpg', 'path/to/video.mp4'];
-await scraper.sendTweet('Hello world!', undefined, mediaFiles);
+// Example: Sending a tweet with media attachments
+const mediaData = [
+  {
+    data: fs.readFileSync('path/to/image.jpg'),
+    mediaType: 'image/jpeg'
+  },
+  {
+    data: fs.readFileSync('path/to/video.mp4'),
+    mediaType: 'video/mp4'
+  }
+];
 
-// Supported media types:
-// - Images: .jpg, .jpeg, .png, .gif
-// - Videos: .mp4
+await scraper.sendTweet('Hello world!', undefined, mediaData);
 ```
 
-### Quote Tweet with Media
+### Supported Media Types
 ```ts
-// Quote tweet with media attachments
-const tweetToQuote = '1234567890123456789';
-const text = 'Check this out!';
-const mediaFiles = ['path/to/image1.jpg', 'path/to/image2.png'];
+// Image formats and their MIME types
+const imageTypes = {
+  '.jpg':  'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png':  'image/png',
+  '.gif':  'image/gif'
+};
 
-// The URL to the quoted tweet will be automatically appended
-await scraper.sendQuoteTweet(text, tweetToQuote, mediaFiles);
+// Video format
+const videoTypes = {
+  '.mp4': 'video/mp4'
+};
 ```
 
-### CLI Usage Examples
-If you're using the CLI interface:
 
-```bash
-# Send tweet with single image
-send-tweet "Hello world!" path/to/image.jpg
-
-# Send tweet with multiple media files
-send-tweet "Check out these photos!" image1.jpg image2.png video.mp4
-
-# Send quote tweet with media
-send-quote-tweet 1234567890123456789 "Amazing thread!" image1.jpg video.mp4
-```
-
-### Media File Handling
-The scraper automatically:
-- Detects media types based on file extensions
-- Handles multiple media attachments (up to 4 images or 1 video)
-- Supports common image formats (JPG, PNG, GIF) and video format (MP4)
-
-### Notes
-- Maximum of 4 images per tweet
-- Only 1 video can be attached per tweet
-- Cannot mix images and videos in the same tweet
+### Media Upload Limitations
+- Maximum 4 images per tweet
+- Only 1 video per tweet
 - Maximum video file size: 512MB
 - Supported image formats: JPG, PNG, GIF
 - Supported video format: MP4
