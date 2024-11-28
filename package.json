@@ -2,7 +2,7 @@
   "name": "agent-twitter-client",
   "description": "A twitter client for agents",
   "keywords": [],
-  "version": "0.0.15",
+  "version": "0.0.16",
   "main": "dist/default/cjs/index.js",
   "types": "./dist/types/index.d.ts",
   "exports": {
