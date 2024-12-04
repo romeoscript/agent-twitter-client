@@ -54,6 +54,7 @@ import {
 } from './tweets';
 import { parseTimelineTweetsV2, TimelineV2 } from './timeline-v2';
 import { fetchHomeTimeline } from './timeline-home';
+import { fetchFollowingTimeline } from './timeline-following';
 import {
   TTweetv2Expansion,
   TTweetv2MediaField,
@@ -274,7 +275,7 @@ export class Scraper {
   }
 
   /**
-   * Fetches the home timeline for the current user.
+   * Fetches the home timeline for the current user. (for you feed)
    * @param count The number of tweets to fetch.
    * @param seenTweetIds An array of tweet IDs that have already been seen.
    * @returns A promise that resolves to the home timeline response.
@@ -284,6 +285,19 @@ export class Scraper {
     seenTweetIds: string[],
   ): Promise<any[]> {
     return await fetchHomeTimeline(count, seenTweetIds, this.auth);
+  }
+
+  /**
+   * Fetches the home timeline for the current user. (following feed)
+   * @param count The number of tweets to fetch.
+   * @param seenTweetIds An array of tweet IDs that have already been seen.
+   * @returns A promise that resolves to the home timeline response.
+   */
+  public async fetchFollowingTimeline(
+    count: number,
+    seenTweetIds: string[],
+  ): Promise<any[]> {
+    return await fetchFollowingTimeline(count, seenTweetIds, this.auth);
   }
 
   async getUserTweets(
