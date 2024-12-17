@@ -25,7 +25,7 @@ import {
   fetchProfileFollowers,
   getFollowing,
   getFollowers,
-  followUser
+  followUser,
 } from './relationships';
 import { QueryProfilesResponse, QueryTweetsResponse } from './timeline-v1';
 import { getTrends } from './trends';
@@ -51,7 +51,7 @@ import {
   createQuoteTweetRequest,
   likeTweet,
   retweet,
-  createCreateNoteTweetRequest,
+  createCreateLongTweetRequest,
 } from './tweets';
 import { parseTimelineTweetsV2, TimelineV2 } from './timeline-v2';
 import { fetchHomeTimeline } from './timeline-home';
@@ -64,6 +64,12 @@ import {
   TTweetv2TweetField,
   TTweetv2UserField,
 } from 'twitter-api-v2';
+import {
+  DirectMessagesResponse,
+  getDirectMessageConversations,
+  sendDirectMessage,
+  SendDirectMessageResponse,
+} from './messages';
 
 const twUrl = 'https://twitter.com';
 const UserTweetsUrl =
@@ -448,15 +454,32 @@ export class Scraper {
     replyToTweetId?: string,
     mediaData?: { data: Buffer; mediaType: string }[],
   ) {
-    return await createCreateTweetRequest(text, this.auth, replyToTweetId, mediaData);
+    return await createCreateTweetRequest(
+      text,
+      this.auth,
+      replyToTweetId,
+      mediaData,
+    );
   }
 
-  async sendNoteTweet(
+  /**
+   * Send a long tweet (Note Tweet)
+   * @param text The text of the tweet
+   * @param tweetId The id of the tweet to reply to
+   * @param mediaData Optional media data
+   * @returns
+   */
+  async sendLongTweet(
     text: string,
     replyToTweetId?: string,
     mediaData?: { data: Buffer; mediaType: string }[],
   ) {
-    return await createCreateNoteTweetRequest(text, this.auth, replyToTweetId, mediaData);
+    return await createCreateLongTweetRequest(
+      text,
+      this.auth,
+      replyToTweetId,
+      mediaData,
+    );
   }
 
   /**
@@ -773,7 +796,7 @@ export class Scraper {
     text: string,
     quotedTweetId: string,
     options?: {
-      mediaData: { data: Buffer; mediaType: string }[],
+      mediaData: { data: Buffer; mediaType: string }[];
     },
   ) {
     return await createQuoteTweetRequest(
@@ -812,6 +835,32 @@ export class Scraper {
   public async followUser(userName: string): Promise<void> {
     // Call the followUser function from relationships.ts
     await followUser(userName, this.auth);
+  }
+
+  /**
+   * Fetches direct message conversations
+   * @param count Number of conversations to fetch (default: 50)
+   * @param cursor Pagination cursor for fetching more conversations
+   * @returns Array of DM conversations and other details
+   */
+  public async getDirectMessageConversations(
+    userId: string,
+    cursor?: string,
+  ): Promise<DirectMessagesResponse> {
+    return await getDirectMessageConversations(userId, this.auth, cursor);
+  }
+
+  /**
+   * Sends a direct message to a user.
+   * @param conversationId The ID of the conversation to send the message to.
+   * @param text The text of the message to send.
+   * @returns The response from the Twitter API.
+   */
+  public async sendDirectMessage(
+    conversationId: string,
+    text: string,
+  ): Promise<SendDirectMessageResponse> {
+    return await sendDirectMessage(this.auth, conversationId, text);
   }
 
   private getAuthOptions(): Partial<TwitterAuthOptions> {
