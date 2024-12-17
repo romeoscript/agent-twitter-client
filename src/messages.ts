@@ -48,41 +48,152 @@ export interface DirectMessageEvent {
 }
 
 export interface DirectMessagesResponse {
-  events: DirectMessageEvent[];
-  apps?: Record<string, any>;
-  next_cursor?: string;
+  conversations: DirectMessageConversation[];
+  users: TwitterUser[];
+  cursor?: string;
+  lastSeenEventId?: string;
+  trustedLastSeenEventId?: string;
+  untrustedLastSeenEventId?: string;
+  inboxTimelines?: {
+    trusted?: {
+      status: string;
+      minEntryId?: string;
+    };
+    untrusted?: {
+      status: string;
+      minEntryId?: string;
+    };
+  };
+  userId: string;
+}
+
+export interface TwitterUser {
+  id: string;
+  screenName: string;
+  name: string;
+  profileImageUrl: string;
+  description?: string;
+  verified?: boolean;
+  protected?: boolean;
+  followersCount?: number;
+  friendsCount?: number;
+}
+
+export interface SendDirectMessageResponse {
+  entries: {
+    message: {
+      id: string;
+      time: string;
+      affects_sort: boolean;
+      conversation_id: string;
+      message_data: {
+        id: string;
+        time: string;
+        recipient_id: string;
+        sender_id: string;
+        text: string;
+      };
+    };
+  }[];
+  users: Record<string, TwitterUser>;
 }
 
 function parseDirectMessageConversations(
   data: any,
-): DirectMessageConversation[] {
+  userId: string,
+): DirectMessagesResponse {
   try {
-    const conversations = data.data.inbox.conversations;
-    return conversations.map((conv: any) => ({
-      conversationId: conv.conversation_id,
-      messages: parseDirectMessages(conv.messages),
-      participants: conv.participants.map((p: any) => ({
-        id: p.user_id,
-        screenName: p.screen_name,
-      })),
-    }));
+    const inboxState = data?.inbox_initial_state;
+    const conversations = inboxState?.conversations || {};
+    const entries = inboxState?.entries || [];
+    const users = inboxState?.users || {};
+
+    // Parse users first
+    const parsedUsers: TwitterUser[] = Object.values(users).map(
+      (user: any) => ({
+        id: user.id_str,
+        screenName: user.screen_name,
+        name: user.name,
+        profileImageUrl: user.profile_image_url_https,
+        description: user.description,
+        verified: user.verified,
+        protected: user.protected,
+        followersCount: user.followers_count,
+        friendsCount: user.friends_count,
+      }),
+    );
+
+    // Group messages by conversation_id
+    const messagesByConversation: Record<string, any[]> = {};
+    entries.forEach((entry: any) => {
+      if (entry.message) {
+        const convId = entry.message.conversation_id;
+        if (!messagesByConversation[convId]) {
+          messagesByConversation[convId] = [];
+        }
+        messagesByConversation[convId].push(entry.message);
+      }
+    });
+
+    // Convert to DirectMessageConversation array
+    const parsedConversations = Object.entries(conversations).map(
+      ([convId, conv]: [string, any]) => {
+        const messages = messagesByConversation[convId] || [];
+
+        // Sort messages by time in ascending order
+        messages.sort((a, b) => Number(a.time) - Number(b.time));
+
+        return {
+          conversationId: convId,
+          messages: parseDirectMessages(messages, users),
+          participants: conv.participants.map((p: any) => ({
+            id: p.user_id,
+            screenName: users[p.user_id]?.screen_name || p.user_id,
+          })),
+        };
+      },
+    );
+
+    return {
+      conversations: parsedConversations,
+      users: parsedUsers,
+      cursor: inboxState?.cursor,
+      lastSeenEventId: inboxState?.last_seen_event_id,
+      trustedLastSeenEventId: inboxState?.trusted_last_seen_event_id,
+      untrustedLastSeenEventId: inboxState?.untrusted_last_seen_event_id,
+      inboxTimelines: {
+        trusted: inboxState?.inbox_timelines?.trusted && {
+          status: inboxState.inbox_timelines.trusted.status,
+          minEntryId: inboxState.inbox_timelines.trusted.min_entry_id,
+        },
+        untrusted: inboxState?.inbox_timelines?.untrusted && {
+          status: inboxState.inbox_timelines.untrusted.status,
+          minEntryId: inboxState.inbox_timelines.untrusted.min_entry_id,
+        },
+      },
+      userId,
+    };
   } catch (error) {
     console.error('Error parsing DM conversations:', error);
-    return [];
+    return {
+      conversations: [],
+      users: [],
+      userId,
+    };
   }
 }
 
-function parseDirectMessages(data: any): DirectMessage[] {
+function parseDirectMessages(messages: any[], users: any): DirectMessage[] {
   try {
-    return data.map((msg: any) => ({
-      id: msg.message_id,
+    return messages.map((msg: any) => ({
+      id: msg.message_data.id,
       text: msg.message_data.text,
       senderId: msg.message_data.sender_id,
       recipientId: msg.message_data.recipient_id,
-      createdAt: msg.message_data.created_at,
-      mediaUrls: msg.message_data.attachment?.media_urls,
-      senderScreenName: msg.message_data.sender_screen_name,
-      recipientScreenName: msg.message_data.recipient_screen_name,
+      createdAt: msg.message_data.time,
+      mediaUrls: extractMediaUrls(msg.message_data),
+      senderScreenName: users[msg.message_data.sender_id]?.screen_name,
+      recipientScreenName: users[msg.message_data.recipient_id]?.screen_name,
     }));
   } catch (error) {
     console.error('Error parsing DMs:', error);
@@ -90,29 +201,31 @@ function parseDirectMessages(data: any): DirectMessage[] {
   }
 }
 
-function parseDirectMessageResponse(data: any): DirectMessage {
-  try {
-    const msg = data.data.message_create;
-    return {
-      id: msg.message_id,
-      text: msg.message_data.text,
-      senderId: msg.message_data.sender_id,
-      recipientId: msg.message_data.recipient_id,
-      createdAt: msg.message_data.created_at,
-      mediaUrls: msg.message_data.attachment?.media_urls,
-      senderScreenName: msg.message_data.sender_screen_name,
-      recipientScreenName: msg.message_data.recipient_screen_name,
-    };
-  } catch (error) {
-    console.error('Error parsing DM response:', error);
-    throw error;
+function extractMediaUrls(messageData: any): string[] | undefined {
+  const urls: string[] = [];
+
+  // Extract URLs from entities if they exist
+  if (messageData.entities?.urls) {
+    messageData.entities.urls.forEach((url: any) => {
+      urls.push(url.expanded_url);
+    });
   }
+
+  // Extract media URLs if they exist
+  if (messageData.entities?.media) {
+    messageData.entities.media.forEach((media: any) => {
+      urls.push(media.media_url_https || media.media_url);
+    });
+  }
+
+  return urls.length > 0 ? urls : undefined;
 }
 
 export async function getDirectMessageConversations(
+  userId: string,
   auth: TwitterAuth,
-  cursor: string,
-) {
+  cursor?: string,
+): Promise<DirectMessagesResponse> {
   if (!auth.isLoggedIn()) {
     throw new Error('Authentication required to fetch direct messages');
   }
@@ -127,14 +240,15 @@ export async function getDirectMessageConversations(
     params.append('cursor', cursor);
   }
 
-  const finalUrl = `${url}${params.toString() ? '?' + params.toString() : ''}`;
+  const finalUrl = `${messageListUrl}${
+    params.toString() ? '?' + params.toString() : ''
+  }`;
   const cookies = await auth.cookieJar().getCookies(url);
   const xCsrfToken = cookies.find((cookie) => cookie.key === 'ct0');
-  const userTwitterId = cookies.find((cookie) => cookie.key === 'twid');
 
   const headers = new Headers({
     authorization: `Bearer ${(auth as any).bearerToken}`,
-    cookie: await auth.cookieJar().getCookieString(messageListUrl),
+    cookie: await auth.cookieJar().getCookieString(url),
     'content-type': 'application/json',
     'User-Agent':
       'Mozilla/5.0 (Linux; Android 11; Nokia G20) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.88 Mobile Safari/537.36',
@@ -157,15 +271,14 @@ export async function getDirectMessageConversations(
 
   // parse the response
   const data = await response.json();
-  return parseDirectMessageConversations(data);
+  return parseDirectMessageConversations(data, userId);
 }
 
 export async function sendDirectMessage(
   auth: TwitterAuth,
-  senderId: string,
-  recipientId: string,
+  conversation_id: string,
   text: string,
-): Promise<DirectMessageEvent> {
+): Promise<SendDirectMessageResponse> {
   if (!auth.isLoggedIn()) {
     throw new Error('Authentication required to send direct messages');
   }
@@ -190,7 +303,7 @@ export async function sendDirectMessage(
   });
 
   const payload = {
-    conversation_id: `${senderId}-${recipientId}`,
+    conversation_id: `${conversation_id}`,
     recipient_ids: false,
     text: text,
     cards_platform: 'Web-12',
@@ -211,5 +324,5 @@ export async function sendDirectMessage(
     throw new Error(await response.text());
   }
 
-  return (await response.json()).event;
+  return await response.json();
 }
