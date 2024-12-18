@@ -138,9 +138,9 @@ async function getSearchTimeline(
   }
 
   const params = new URLSearchParams();
-  params.set('features', stringify(features));
-  params.set('fieldToggles', stringify(fieldToggles));
-  params.set('variables', stringify(variables));
+  params.set('features', stringify(features) ?? '');
+  params.set('fieldToggles', stringify(fieldToggles) ?? '');
+  params.set('variables', stringify(variables) ?? '');
 
   const res = await requestApi<SearchTimeline>(
     `https://api.twitter.com/graphql/gkjsKepM6gl_HmFWoWKfgg/SearchTimeline?${params.toString()}`,

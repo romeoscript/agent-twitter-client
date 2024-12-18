@@ -14,8 +14,8 @@ globalThis.PLATFORM_NODE = typeof process !== 'undefined' && (
 globalThis.PLATFORM_NODE_JEST = false;
 
 // Your existing imports
-import { Scraper } from './src/scraper';
-import { Tweet } from './src/tweets';
+import { Scraper } from './scraper';
+import { Photo, Tweet } from './tweets';
 import fs from 'fs';
 import path from 'path';
 import readline from 'readline';
@@ -211,7 +211,7 @@ async function getPhotosFromTweet(tweetId: string) {
     if (tweet && tweet.photos.length > 0) {
       console.log(`Found ${tweet.photos.length} photo(s) in tweet ID ${tweetId}:`);
       // Iterate over each photo and display its URL
-      tweet.photos.forEach((photo, index) => {
+      tweet.photos.forEach((photo: Photo, index: number) => {
         console.log(`Photo ${index + 1}: ${photo.url}`);
       });
     } else {

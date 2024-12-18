@@ -132,7 +132,7 @@ export async function getProfile(
     stringify({
       screen_name: username,
       withSafetyModeUserFields: true,
-    }),
+    }) ?? '',
   );
 
   params.set(
@@ -148,10 +148,10 @@ export async function getProfile(
       creator_subscriptions_tweet_preview_api_enabled: true,
       responsive_web_graphql_skip_user_profile_image_extensions_enabled: false,
       responsive_web_graphql_timeline_navigation_enabled: true,
-    }),
+    }) ?? '',
   );
 
-  params.set('fieldToggles', stringify({ withAuxiliaryUserLabels: false }));
+  params.set('fieldToggles', stringify({ withAuxiliaryUserLabels: false }) ?? '');
 
   const res = await requestApi<UserRaw>(
     `https://twitter.com/i/api/graphql/G3KGOASz96M-Qu0nwmGXNg/UserByScreenName?${params.toString()}`,
@@ -213,7 +213,7 @@ export async function getScreenNameByUserId(
     stringify({
       userId: userId,
       withSafetyModeUserFields: true,
-    }),
+    }) ?? '',
   );
 
   params.set(
@@ -229,7 +229,7 @@ export async function getScreenNameByUserId(
       creator_subscriptions_tweet_preview_api_enabled: true,
       responsive_web_graphql_skip_user_profile_image_extensions_enabled: false,
       responsive_web_graphql_timeline_navigation_enabled: true,
-    }),
+    }) ?? '',
   );
 
   const res = await requestApi<UserRaw>(
