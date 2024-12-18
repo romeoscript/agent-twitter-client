@@ -476,7 +476,9 @@ export async function createCreateTweetRequest(
 
   if (mediaData && mediaData.length > 0) {
     const mediaIds = await Promise.all(
-      mediaData.map(({ data, mediaType }) => uploadMedia(data, auth, mediaType)),
+      mediaData.map(({ data, mediaType }) =>
+        uploadMedia(data, auth, mediaType),
+      ),
     );
 
     variables.media.media_entities = mediaIds.map((id) => ({
@@ -587,7 +589,9 @@ export async function createCreateNoteTweetRequest(
 
   if (mediaData && mediaData.length > 0) {
     const mediaIds = await Promise.all(
-      mediaData.map(({ data, mediaType }) => uploadMedia(data, auth, mediaType)),
+      mediaData.map(({ data, mediaType }) =>
+        uploadMedia(data, auth, mediaType),
+      ),
     );
 
     variables.media.media_entities = mediaIds.map((id) => ({
@@ -610,14 +614,16 @@ export async function createCreateNoteTweetRequest(
           interactive_text_enabled: true,
           longform_notetweets_inline_media_enabled: false,
           responsive_web_text_conversations_enabled: false,
-          tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled: false,
+          tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled:
+            false,
           vibe_api_enabled: false,
           rweb_lists_timeline_redesign_enabled: true,
           responsive_web_graphql_exclude_directive_enabled: true,
           verified_phone_label_enabled: false,
           creator_subscriptions_tweet_preview_api_enabled: true,
           responsive_web_graphql_timeline_navigation_enabled: true,
-          responsive_web_graphql_skip_user_profile_image_extensions_enabled: false,
+          responsive_web_graphql_skip_user_profile_image_extensions_enabled:
+            false,
           tweetypie_unmention_optimization_enabled: true,
           responsive_web_edit_tweet_api_enabled: true,
           graphql_is_translatable_rweb_tweet_is_translatable_enabled: true,
@@ -639,7 +645,8 @@ export async function createCreateNoteTweetRequest(
           android_graphql_skip_api_media_color_palette: false,
           creator_subscriptions_subscription_count_enabled: false,
           blue_business_profile_image_shape_enabled: false,
-          unified_cards_ad_metadata_container_dynamic_card_content_query_enabled: false,
+          unified_cards_ad_metadata_container_dynamic_card_content_query_enabled:
+            false,
           rweb_video_timestamps_enabled: false,
           c9s_tweet_anatomy_moderator_badge_enabled: false,
           responsive_web_twitter_article_tweet_consumption_enabled: false,
@@ -1046,7 +1053,10 @@ async function uploadMedia(
   }
 
   // Function to upload video in chunks
-  async function uploadVideoInChunks(mediaData: Buffer, mediaType: string): Promise<string> {
+  async function uploadVideoInChunks(
+    mediaData: Buffer,
+    mediaType: string,
+  ): Promise<string> {
     // Initialize upload
     const initParams = new URLSearchParams();
     initParams.append('command', 'INIT');
@@ -1126,10 +1136,13 @@ async function uploadMedia(
       statusParams.append('command', 'STATUS');
       statusParams.append('media_id', mediaId);
 
-      const statusResponse = await fetch(`${uploadUrl}?${statusParams.toString()}`, {
-        method: 'GET',
-        headers,
-      });
+      const statusResponse = await fetch(
+        `${uploadUrl}?${statusParams.toString()}`,
+        {
+          method: 'GET',
+          headers,
+        },
+      );
 
       if (!statusResponse.ok) {
         throw new Error(await statusResponse.text());
@@ -1187,7 +1200,9 @@ export async function createQuoteTweetRequest(
   // Handle media uploads if any media data is provided
   if (mediaData && mediaData.length > 0) {
     const mediaIds = await Promise.all(
-      mediaData.map(({ data, mediaType }) => uploadMedia(data, auth, mediaType)),
+      mediaData.map(({ data, mediaType }) =>
+        uploadMedia(data, auth, mediaType),
+      ),
     );
 
     variables.media.media_entities = mediaIds.map((id) => ({
@@ -1207,14 +1222,16 @@ export async function createQuoteTweetRequest(
           interactive_text_enabled: true,
           longform_notetweets_inline_media_enabled: false,
           responsive_web_text_conversations_enabled: false,
-          tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled: false,
+          tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled:
+            false,
           vibe_api_enabled: false,
           rweb_lists_timeline_redesign_enabled: true,
           responsive_web_graphql_exclude_directive_enabled: true,
           verified_phone_label_enabled: false,
           creator_subscriptions_tweet_preview_api_enabled: true,
           responsive_web_graphql_timeline_navigation_enabled: true,
-          responsive_web_graphql_skip_user_profile_image_extensions_enabled: false,
+          responsive_web_graphql_skip_user_profile_image_extensions_enabled:
+            false,
           tweetypie_unmention_optimization_enabled: true,
           responsive_web_edit_tweet_api_enabled: true,
           graphql_is_translatable_rweb_tweet_is_translatable_enabled: true,
@@ -1235,10 +1252,11 @@ export async function createQuoteTweetRequest(
           android_graphql_skip_api_media_color_palette: false,
           creator_subscriptions_subscription_count_enabled: false,
           blue_business_profile_image_shape_enabled: false,
-          unified_cards_ad_metadata_container_dynamic_card_content_query_enabled: false,
+          unified_cards_ad_metadata_container_dynamic_card_content_query_enabled:
+            false,
           rweb_video_timestamps_enabled: true,
           c9s_tweet_anatomy_moderator_badge_enabled: true,
-          responsive_web_twitter_article_tweet_consumption_enabled: false
+          responsive_web_twitter_article_tweet_consumption_enabled: false,
         },
         fieldToggles: {},
       }),
@@ -1365,7 +1383,8 @@ export async function createCreateLongTweetRequest(
   mediaData?: { data: Buffer; mediaType: string }[],
 ) {
   // URL for the long tweet endpoint
-  const url = 'https://x.com/i/api/graphql/YNXM2DGuE2Sff6a2JD3Ztw/CreateNoteTweet';
+  const url =
+    'https://x.com/i/api/graphql/YNXM2DGuE2Sff6a2JD3Ztw/CreateNoteTweet';
   const onboardingTaskUrl = 'https://api.twitter.com/1.1/onboarding/task.json';
 
   const cookies = await auth.cookieJar().getCookies(onboardingTaskUrl);
@@ -1397,7 +1416,9 @@ export async function createCreateLongTweetRequest(
 
   if (mediaData && mediaData.length > 0) {
     const mediaIds = await Promise.all(
-      mediaData.map(({ data, mediaType }) => uploadMedia(data, auth, mediaType)),
+      mediaData.map(({ data, mediaType }) =>
+        uploadMedia(data, auth, mediaType),
+      ),
     );
 
     variables.media.media_entities = mediaIds.map((id) => ({
@@ -1433,7 +1454,8 @@ export async function createCreateLongTweetRequest(
     responsive_web_graphql_skip_user_profile_image_extensions_enabled: false,
     freedom_of_speech_not_reach_fetch_enabled: true,
     standardized_nudges_misinfo: true,
-    tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled: true,
+    tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled:
+      true,
     responsive_web_graphql_timeline_navigation_enabled: true,
     responsive_web_enhance_cards_enabled: false,
   };
