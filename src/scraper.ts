@@ -693,6 +693,14 @@ export class Scraper {
   }
 
   /**
+   * Returns the currently logged in user
+   * @returns The currently logged in user
+   */
+  public async me(): Promise<Profile | undefined> {
+    return this.auth.me();
+  }
+
+  /**
    * Login to Twitter as a real Twitter account. This enables running
    * searches.
    * @param username The username of the Twitter account to login with.

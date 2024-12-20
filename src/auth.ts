@@ -3,6 +3,7 @@ import { updateCookieJar } from './requests';
 import { Headers } from 'headers-polyfill';
 import { FetchTransformOptions } from './api';
 import { TwitterApi } from 'twitter-api-v2';
+import { Profile } from './profile';
 
 export interface TwitterAuthOptions {
   fetch: typeof fetch;
@@ -37,6 +38,11 @@ export interface TwitterAuth {
    * @returns `true` if a user is logged-in; otherwise `false`.
    */
   isLoggedIn(): Promise<boolean>;
+
+  /**
+   * Fetches the current user's profile.
+   */
+  me(): Promise<Profile | undefined>;
 
   /**
    * Logs into a Twitter account.
@@ -149,6 +155,10 @@ export class TwitterGuestAuth implements TwitterAuth {
 
   isLoggedIn(): Promise<boolean> {
     return Promise.resolve(false);
+  }
+
+  async me(): Promise<Profile | undefined> {
+    return undefined;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
