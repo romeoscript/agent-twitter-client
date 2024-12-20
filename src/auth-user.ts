@@ -7,6 +7,7 @@ import { TwitterApiErrorRaw } from './errors';
 import { Type, type Static } from '@sinclair/typebox';
 import { Check } from '@sinclair/typebox/value';
 import * as OTPAuth from 'otpauth';
+import { LegacyUserRaw, parseProfile, type Profile } from './profile';
 
 interface TwitterUserAuthFlowInitRequest {
   flow_name: string;
@@ -53,6 +54,8 @@ type FlowTokenResult = FlowTokenResultSuccess | { status: 'error'; err: Error };
  * A user authentication token manager.
  */
 export class TwitterUserAuth extends TwitterGuestAuth {
+  private userProfile: Profile | undefined;
+
   constructor(bearerToken: string, options?: Partial<TwitterAuthOptions>) {
     super(bearerToken, options);
   }
@@ -67,7 +70,19 @@ export class TwitterUserAuth extends TwitterGuestAuth {
     }
 
     const { value: verify } = res;
+    this.userProfile = parseProfile(
+      verify as LegacyUserRaw,
+      (verify as unknown as { verified: boolean }).verified,
+    );
     return verify && !verify.errors?.length;
+  }
+
+  async me(): Promise<Profile | undefined> {
+    if (this.userProfile) {
+      return this.userProfile;
+    }
+    await this.isLoggedIn();
+    return this.userProfile;
   }
 
   async login(

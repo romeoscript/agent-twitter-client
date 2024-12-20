@@ -135,6 +135,9 @@ const profile = await scraper.getProfile('TwitterDev');
 
 // Get a user ID from their screen name
 const userId = await scraper.getUserIdByScreenName('TwitterDev');
+
+// Get logged-in user's profile
+const me = await scraper.me();
 ```
 
 ### Search
