@@ -16,7 +16,7 @@
       "require": "./dist/default/cjs/index.js"
     }
   },
-  "author": "ai16z",
+  "author": "elizaOS",
   "license": "MIT",
   "scripts": {
     "build": "rimraf dist && rollup -c",
