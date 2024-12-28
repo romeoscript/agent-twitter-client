@@ -6,7 +6,6 @@ import { spawn } from 'child_process';
 import { Plugin, AudioDataWithUser } from '../types';
 import { Space } from '../core/Space';
 import { JanusClient } from '../core/JanusClient';
-import OpenAI from 'openai';
 
 interface PluginConfig {
   openAiApiKey?: string; // for STT & ChatGPT
@@ -35,7 +34,6 @@ export class SttTtsPlugin implements Plugin {
 
   // OpenAI + ElevenLabs
   private openAiApiKey?: string;
-  private openAiClient?: OpenAI;
   private elevenLabsApiKey?: string;
 
   private sttLanguage = 'en';
@@ -98,12 +96,6 @@ export class SttTtsPlugin implements Plugin {
       this.chatContext = config.chatContext;
     }
     console.log('[SttTtsPlugin] Plugin config =>', config);
-
-    // Create official OpenAI client if we have an API key
-    if (this.openAiApiKey) {
-      this.openAiClient = new OpenAI({ apiKey: this.openAiApiKey });
-      console.log('[SttTtsPlugin] OpenAI client initialized');
-    }
 
     // Listen for mute state changes to trigger STT flush
     this.space.on(
@@ -247,21 +239,53 @@ export class SttTtsPlugin implements Plugin {
    * OpenAI Whisper STT
    */
   private async transcribeWithOpenAI(wavPath: string, language: string) {
-    if (!this.openAiClient) {
-      throw new Error('[SttTtsPlugin] No OpenAI client available');
+    if (!this.openAiApiKey) {
+      throw new Error('[SttTtsPlugin] No OpenAI API key available');
     }
+
     try {
       console.log('[SttTtsPlugin] Transcribe =>', wavPath);
-      const fileStream = fs.createReadStream(wavPath);
 
-      const resp = await this.openAiClient.audio.transcriptions.create({
-        file: fileStream,
-        model: 'whisper-1',
-        language: language,
-        temperature: 0,
-      });
+      // Read file into buffer
+      const fileBuffer = fs.readFileSync(wavPath);
+      console.log(
+        '[SttTtsPlugin] File read, size:',
+        fileBuffer.length,
+        'bytes',
+      );
 
-      const text = resp.text?.trim() || '';
+      // Create blob from buffer
+      const blob = new Blob([fileBuffer], { type: 'audio/wav' });
+
+      // Create FormData
+      const formData = new FormData();
+      formData.append('file', blob, path.basename(wavPath));
+      formData.append('model', 'whisper-1');
+      formData.append('language', language);
+      formData.append('temperature', '0');
+
+      // Call OpenAI API
+      const response = await fetch(
+        'https://api.openai.com/v1/audio/transcriptions',
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${this.openAiApiKey}`,
+          },
+          body: formData,
+        },
+      );
+
+      // Handle errors
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[SttTtsPlugin] API Error:', errorText);
+        throw new Error(`OpenAI API error: ${response.status} ${errorText}`);
+      }
+
+      // Parse response
+      const data = (await response.json()) as { text: string };
+      const text = data.text?.trim() || '';
       console.log('[SttTtsPlugin] Transcription =>', text);
       return text;
     } catch (err) {

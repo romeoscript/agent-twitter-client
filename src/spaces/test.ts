@@ -38,14 +38,15 @@ async function main() {
     // systemPrompt: "You are a calm and friendly AI assistant."
   });
 
-  // Create an IdleMonitorPlugin to stop after 30s of silence
-  const idlePlugin = new IdleMonitorPlugin(30_000, 10_000);
+  // Create an IdleMonitorPlugin to stop after 60s of silence
+  const idlePlugin = new IdleMonitorPlugin(60_000, 10_000);
   space.use(idlePlugin);
 
   // If idle occurs, say goodbye and end the Space
   space.on('idleTimeout', async (info) => {
     console.log(`[Test] idleTimeout => no audio for ${info.idleMs}ms.`);
     await sttTtsPlugin.speakText('Ending Space due to inactivity. Goodbye!');
+    await new Promise((r) => setTimeout(r, 10_000));
     await space.stop();
     console.log('[Test] Space stopped due to silence.');
     process.exit(0);
@@ -102,7 +103,7 @@ async function main() {
     sttTtsPlugin
       .speakText('Hello everyone, this is an automated greeting.')
       .catch((err) => console.error('[Test] speakText() =>', err));
-  }, 60_000);
+  }, 20_000);
 
   // 4) Some event listeners
   space.on('speakerRequest', async (req) => {
