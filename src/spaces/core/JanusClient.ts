@@ -1,7 +1,8 @@
 // src/core/JanusClient.ts
 
 import { EventEmitter } from 'events';
-import { RTCPeerConnection, MediaStream } from '@roamhq/wrtc';
+import wrtc from '@roamhq/wrtc';
+const { RTCPeerConnection, MediaStream } = wrtc;
 import { JanusAudioSink, JanusAudioSource } from './JanusAudioSource';
 import type { AudioDataWithUser, TurnServersInfo } from '../types';
 
@@ -112,6 +113,7 @@ export class JanusClient extends EventEmitter {
     }
     const feedId = pub.id;
     console.log('[JanusClient] found feedId =>', feedId);
+    this.emit('subscribedSpeaker', { userId, feedId });
 
     // 3) "join" as subscriber with "streams: [{ feed, mid: '0', send: true }]"
     const joinBody = {
@@ -161,14 +163,14 @@ export class JanusClient extends EventEmitter {
       console.log('[JanusClient] subscriber track =>', evt.track.kind);
 
       // TODO: REMOVE DEBUG
-      console.log(
-        '[JanusClient] subscriber track => kind=',
-        evt.track.kind,
-        'readyState=',
-        evt.track.readyState,
-        'muted=',
-        evt.track.muted,
-      );
+      // console.log(
+      //   '[JanusClient] subscriber track => kind=',
+      //   evt.track.kind,
+      //   'readyState=',
+      //   evt.track.readyState,
+      //   'muted=',
+      //   evt.track.muted,
+      // );
 
       const sink = new JanusAudioSink(evt.track);
       sink.on('audioData', (frame) => {
@@ -506,7 +508,8 @@ export class JanusClient extends EventEmitter {
   }
 
   private handleJanusEvent(evt: any) {
-    console.log('[JanusClient] handleJanusEvent =>', JSON.stringify(evt));
+    // TODO: REMOVE DEBUG
+    // console.log('[JanusClient] handleJanusEvent =>', JSON.stringify(evt));
 
     if (!evt.janus) return;
     if (evt.janus === 'keepalive') {
@@ -550,7 +553,9 @@ export class JanusClient extends EventEmitter {
     if (!this.pc) return;
 
     this.pc.addEventListener('iceconnectionstatechange', () => {
-      console.log('[JanusClient] ICE state =>', this.pc?.iceConnectionState);
+      // TODO: REMOVE DEBUG
+      // console.log('[JanusClient] ICE state =>', this.pc?.iceConnectionState);
+
       if (this.pc?.iceConnectionState === 'failed') {
         this.emit('error', new Error('ICE connection failed'));
       }

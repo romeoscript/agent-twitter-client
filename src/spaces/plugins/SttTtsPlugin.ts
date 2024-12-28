@@ -14,6 +14,13 @@ interface PluginConfig {
   sttLanguage?: string; // e.g. "en" for Whisper
   gptModel?: string; // e.g. "gpt-3.5-turbo"
   silenceThreshold?: number; // amplitude threshold for ignoring silence
+  voiceId?: string; // specify which ElevenLabs voice to use
+  elevenLabsModel?: string; // e.g. "eleven_monolingual_v1"
+  systemPrompt?: string; // ex. "You are a helpful AI assistant"
+  chatContext?: Array<{
+    role: 'system' | 'user' | 'assistant';
+    content: string;
+  }>;
 }
 
 /**
@@ -33,6 +40,14 @@ export class SttTtsPlugin implements Plugin {
 
   private sttLanguage = 'en';
   private gptModel = 'gpt-3.5-turbo';
+  private voiceId = '21m00Tcm4TlvDq8ikWAM';
+  private elevenLabsModel = 'eleven_monolingual_v1';
+
+  private systemPrompt = 'You are a helpful AI assistant.';
+  private chatContext: Array<{
+    role: 'system' | 'user' | 'assistant';
+    content: string;
+  }> = [];
 
   /**
    * userId => arrayOfChunks (PCM Int16)
@@ -68,6 +83,19 @@ export class SttTtsPlugin implements Plugin {
     if (config?.gptModel) this.gptModel = config.gptModel;
     if (typeof config?.silenceThreshold === 'number') {
       this.silenceThreshold = config.silenceThreshold;
+    }
+    if (config?.voiceId) {
+      this.voiceId = config.voiceId;
+    }
+    if (config?.elevenLabsModel) {
+      this.voiceId = config.elevenLabsModel;
+    }
+
+    if (config.systemPrompt) {
+      this.systemPrompt = config.systemPrompt;
+    }
+    if (config.chatContext) {
+      this.chatContext = config.chatContext;
     }
     console.log('[SttTtsPlugin] Plugin config =>', config);
 
@@ -250,6 +278,14 @@ export class SttTtsPlugin implements Plugin {
       throw new Error('[SttTtsPlugin] No OpenAI API key for ChatGPT');
     }
     const url = 'https://api.openai.com/v1/chat/completions';
+
+    // Build the final array of messages
+    const messages = [
+      { role: 'system', content: this.systemPrompt },
+      ...this.chatContext,
+      { role: 'user', content: userText },
+    ];
+
     const resp = await fetch(url, {
       method: 'POST',
       headers: {
@@ -258,20 +294,24 @@ export class SttTtsPlugin implements Plugin {
       },
       body: JSON.stringify({
         model: this.gptModel,
-        messages: [
-          { role: 'system', content: 'You are a helpful AI assistant.' },
-          { role: 'user', content: userText },
-        ],
+        messages,
       }),
     });
+
     if (!resp.ok) {
       const errText = await resp.text();
       throw new Error(
         `[SttTtsPlugin] ChatGPT error => ${resp.status} ${errText}`,
       );
     }
+
     const json = await resp.json();
     const reply = json.choices?.[0]?.message?.content || '';
+
+    // Optionally store the conversation in the chatContext
+    this.chatContext.push({ role: 'user', content: userText });
+    this.chatContext.push({ role: 'assistant', content: reply });
+
     return reply.trim();
   }
 
@@ -282,8 +322,7 @@ export class SttTtsPlugin implements Plugin {
     if (!this.elevenLabsApiKey) {
       throw new Error('[SttTtsPlugin] No ElevenLabs API key');
     }
-    const voiceId = '21m00Tcm4TlvDq8ikWAM'; // example
-    const url = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`;
+    const url = `https://api.elevenlabs.io/v1/text-to-speech/${this.voiceId}`;
     const resp = await fetch(url, {
       method: 'POST',
       headers: {
@@ -292,6 +331,7 @@ export class SttTtsPlugin implements Plugin {
       },
       body: JSON.stringify({
         text,
+        model_id: this.elevenLabsModel,
         voice_settings: { stability: 0.4, similarity_boost: 0.8 },
       }),
     });
@@ -371,6 +411,55 @@ export class SttTtsPlugin implements Plugin {
       this.janus?.pushLocalAudio(frame, sampleRate, 1);
       await new Promise((r) => setTimeout(r, 10));
     }
+  }
+
+  public async speakText(text: string): Promise<void> {
+    // 1) TTS => MP3
+    const ttsAudio = await this.elevenLabsTts(text);
+
+    // 2) Convert MP3 -> PCM
+    const pcm = await this.convertMp3ToPcm(ttsAudio, 48000);
+
+    // 3) Stream to Janus
+    if (this.janus) {
+      await this.streamToJanus(pcm, 48000);
+      console.log('[SttTtsPlugin] speakText => done streaming to space');
+    }
+  }
+
+  /**
+   * Change the system prompt at runtime.
+   */
+  public setSystemPrompt(prompt: string) {
+    this.systemPrompt = prompt;
+    console.log('[SttTtsPlugin] setSystemPrompt =>', prompt);
+  }
+
+  /**
+   * Change the GPT model at runtime (e.g. "gpt-4", "gpt-3.5-turbo", etc.).
+   */
+  public setGptModel(model: string) {
+    this.gptModel = model;
+    console.log('[SttTtsPlugin] setGptModel =>', model);
+  }
+
+  /**
+   * Add a message (system, user or assistant) to the chat context.
+   * E.g. to store conversation history or inject a persona.
+   */
+  public addMessage(role: 'system' | 'user' | 'assistant', content: string) {
+    this.chatContext.push({ role, content });
+    console.log(
+      `[SttTtsPlugin] addMessage => role=${role}, content=${content}`,
+    );
+  }
+
+  /**
+   * Clear the chat context if needed.
+   */
+  public clearChatContext() {
+    this.chatContext = [];
+    console.log('[SttTtsPlugin] clearChatContext => done');
   }
 
   cleanup(): void {

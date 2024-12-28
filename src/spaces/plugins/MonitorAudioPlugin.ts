@@ -36,14 +36,14 @@ export class MonitorAudioPlugin implements Plugin {
 
   onAudioData(data: AudioDataWithUser): void {
     // TODO: REMOVE DEBUG
-    console.log(
-      '[MonitorAudioPlugin] onAudioData => user=',
-      data.userId,
-      'samples=',
-      data.samples.length,
-      'sampleRate=',
-      data.sampleRate,
-    );
+    // console.log(
+    //   '[MonitorAudioPlugin] onAudioData => user=',
+    //   data.userId,
+    //   'samples=',
+    //   data.samples.length,
+    //   'sampleRate=',
+    //   data.sampleRate,
+    // );
 
     // Check sampleRate if needed
     if (!this.ffplay?.stdin.writable) return;

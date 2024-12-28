@@ -19,6 +19,7 @@ import type {
   Plugin,
   AudioDataWithUser,
   PluginRegistration,
+  SpeakerInfo,
 } from '../types';
 import { Scraper } from '../../scraper';
 
@@ -35,6 +36,7 @@ export class Space extends EventEmitter {
   private broadcastInfo?: BroadcastCreated;
   private isInitialized = false;
   private plugins = new Set<PluginRegistration>();
+  private speakers = new Map<string, SpeakerInfo>();
 
   constructor(private readonly scraper: Scraper) {
     super();
@@ -104,6 +106,22 @@ export class Space extends EventEmitter {
       // console.log('[Space] Received PCM from speaker =>', data.userId);
       this.handleAudioData(data);
       // You can store or forward to a plugin, run STT, etc.
+    });
+
+    this.janusClient.on('subscribedSpeaker', ({ userId, feedId }) => {
+      const speaker = this.speakers.get(userId);
+      if (!speaker) {
+        console.log(
+          '[Space] subscribedSpeaker => speaker not found for userId=',
+          userId,
+        );
+        return;
+      }
+
+      speaker.janusParticipantId = feedId;
+      console.log(
+        `[Space] updated speaker info => userId=${userId}, feedId=${feedId}`,
+      );
     });
 
     // 7) Publish the broadcast
@@ -181,6 +199,11 @@ export class Space extends EventEmitter {
       throw new Error('[Space] No auth token available');
     }
 
+    this.speakers.set(userId, {
+      userId,
+      sessionUUID,
+    });
+
     // 1) Call the "request/approve" endpoint
     await this.callApproveEndpoint(
       this.broadcastInfo,
@@ -231,6 +254,111 @@ export class Space extends EventEmitter {
     console.log('[Space] Speaker approved =>', userId);
   }
 
+  /**
+   * Removes a speaker (userId) on the Twitter side (audiospace/stream/eject)
+   * then unsubscribes in Janus if needed.
+   */
+  public async removeSpeaker(userId: string) {
+    if (!this.isInitialized || !this.broadcastInfo) {
+      throw new Error('[Space] Not initialized or no broadcastInfo');
+    }
+    if (!this.authToken) {
+      throw new Error('[Space] No auth token available');
+    }
+    if (!this.janusClient) {
+      throw new Error('[Space] No Janus client initialized');
+    }
+
+    const speaker = this.speakers.get(userId);
+    if (!speaker) {
+      throw new Error(
+        `[Space] removeSpeaker => no speaker found for userId=${userId}`,
+      );
+    }
+
+    const sessionUUID = speaker.sessionUUID;
+    const janusParticipantId = speaker.janusParticipantId;
+    console.log(sessionUUID, janusParticipantId, speaker);
+    if (!sessionUUID || janusParticipantId === undefined) {
+      throw new Error(
+        `[Space] removeSpeaker => missing sessionUUID or feedId for userId=${userId}`,
+      );
+    }
+
+    const janusHandleId = this.janusClient.getHandleId();
+    const janusSessionId = this.janusClient.getSessionId();
+
+    if (!janusHandleId || !janusSessionId) {
+      throw new Error(
+        `[Space] removeSpeaker => missing Janus handle or sessionId for userId=${userId}`,
+      );
+    }
+
+    // 1) Call the Twitter eject endpoint
+    await this.callRemoveEndpoint(
+      this.broadcastInfo,
+      this.authToken,
+      sessionUUID,
+      janusParticipantId,
+      this.broadcastInfo.room_id,
+      janusHandleId,
+      janusSessionId,
+    );
+
+    // 2) Remove from local speakers map
+    this.speakers.delete(userId);
+
+    console.log(`[Space] removeSpeaker => removed userId=${userId}`);
+  }
+
+  /**
+   * Calls the audiospace/stream/eject endpoint to remove a speaker on Twitter
+   */
+  private async callRemoveEndpoint(
+    broadcast: BroadcastCreated,
+    authorizationToken: string,
+    sessionUUID: string,
+    janusParticipantId: number,
+    janusRoomId: string,
+    webrtcHandleId: number,
+    webrtcSessionId: number,
+  ): Promise<void> {
+    const endpoint = 'https://guest.pscp.tv/api/v1/audiospace/stream/eject';
+
+    const headers = {
+      'Content-Type': 'application/json',
+      Referer: 'https://x.com/',
+      Authorization: authorizationToken,
+    };
+
+    const body = {
+      ntpForBroadcasterFrame: '2208988800024000300',
+      ntpForLiveFrame: '2208988800024000300',
+      session_uuid: sessionUUID,
+      chat_token: broadcast.access_token,
+      janus_room_id: janusRoomId,
+      janus_participant_id: janusParticipantId,
+      webrtc_handle_id: webrtcHandleId,
+      webrtc_session_id: webrtcSessionId,
+    };
+
+    console.log('[Space] Removing speaker =>', endpoint, body);
+    const resp = await fetch(endpoint, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+    });
+
+    if (!resp.ok) {
+      const error = await resp.text();
+      throw new Error(
+        `[Space] Failed to remove speaker => ${resp.status}: ${error}`,
+      );
+    }
+
+    console.log('[Space] Speaker removed => sessionUUID=', sessionUUID);
+  }
+
   pushAudio(samples: Int16Array, sampleRate: number) {
     this.janusClient?.pushLocalAudio(samples, sampleRate);
   }
@@ -250,34 +378,34 @@ export class Space extends EventEmitter {
    * Gracefully end the Space (stop broadcast, destroy Janus room, etc.)
    */
   public async finalizeSpace(): Promise<void> {
-      console.log('[Space] finalizeSpace => stopping broadcast gracefully');
+    console.log('[Space] finalizeSpace => stopping broadcast gracefully');
 
-      const tasks: Array<Promise<any>> = [];
+    const tasks: Array<Promise<any>> = [];
 
     if (this.janusClient) {
       tasks.push(
-          this.janusClient.destroyRoom().catch((err) => {
-            console.error('[Space] destroyRoom error =>', err);
-          }),
+        this.janusClient.destroyRoom().catch((err) => {
+          console.error('[Space] destroyRoom error =>', err);
+        }),
       );
     }
 
     if (this.broadcastInfo) {
       tasks.push(
-          this.endAudiospace({
-            broadcastId: this.broadcastInfo.room_id,
-            chatToken: this.broadcastInfo.access_token,
-          }).catch((err) => {
-            console.error('[Space] endAudiospace error =>', err);
-          }),
+        this.endAudiospace({
+          broadcastId: this.broadcastInfo.room_id,
+          chatToken: this.broadcastInfo.access_token,
+        }).catch((err) => {
+          console.error('[Space] endAudiospace error =>', err);
+        }),
       );
     }
 
     if (this.janusClient) {
       tasks.push(
-          this.janusClient.leaveRoom().catch((err) => {
-            console.error('[Space] leaveRoom error =>', err);
-          }),
+        this.janusClient.leaveRoom().catch((err) => {
+          console.error('[Space] leaveRoom error =>', err);
+        }),
       );
     }
 
@@ -317,6 +445,10 @@ export class Space extends EventEmitter {
     }
     const json = await resp.json();
     console.log('[Space] endAudiospace => success =>', json);
+  }
+
+  public getSpeakers(): SpeakerInfo[] {
+    return Array.from(this.speakers.values());
   }
 
   async stop() {

@@ -1,7 +1,8 @@
 // src/core/audio.ts
 
 import { EventEmitter } from 'events';
-import { nonstandard } from '@roamhq/wrtc';
+import wrtc from '@roamhq/wrtc';
+const { nonstandard } = wrtc;
 const { RTCAudioSource, RTCAudioSink } = nonstandard;
 
 export class JanusAudioSource extends EventEmitter {
