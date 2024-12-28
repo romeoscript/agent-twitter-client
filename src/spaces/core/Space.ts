@@ -15,6 +15,7 @@ import type {
   BroadcastCreated,
   SpeakerRequest,
   OccupancyUpdate,
+  GuestReaction,
   Plugin,
   AudioDataWithUser,
   PluginRegistration,
@@ -144,6 +145,11 @@ export class Space extends EventEmitter {
     return broadcast;
   }
 
+  reactWithEmoji(emoji: string) {
+    if (!this.chatClient) return;
+    this.chatClient.reactWithEmoji(emoji);
+  }
+
   private setupChatEvents() {
     if (!this.chatClient) return;
 
@@ -156,6 +162,10 @@ export class Space extends EventEmitter {
     });
     this.chatClient.on('muteStateChanged', (evt) => {
       this.emit('muteStateChanged', evt);
+    });
+    this.chatClient.on('guestReaction', (reaction: GuestReaction) => {
+      console.log('[Space] Guest reaction =>', reaction);
+      this.emit('guestReaction', reaction);
     });
   }
 

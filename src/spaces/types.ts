@@ -26,6 +26,11 @@ export interface OccupancyUpdate {
   totalParticipants: number;
 }
 
+export interface GuestReaction {
+  displayName: string;
+  emoji: string;
+}
+
 export interface SpaceConfig {
   mode: 'BROADCAST' | 'LISTEN' | 'INTERACTIVE';
   title?: string;

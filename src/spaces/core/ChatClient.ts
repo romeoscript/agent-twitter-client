@@ -82,6 +82,30 @@ export class ChatClient extends EventEmitter {
     );
   }
 
+  reactWithEmoji(emoji: string) {
+    if (!this.ws) return;
+    const payload = JSON.stringify({
+      body: JSON.stringify({ body: emoji, type: 2, v: 2 }),
+      kind: 1,
+      /*
+      // The 'sender' field is not required, it's not even verified by the server
+      // Instead of passing attributes down here it's easier to ignore it
+      sender: {
+        user_id: null,
+        twitter_id: null,
+        username: null,
+        display_name: null,
+      },
+      */
+      payload: JSON.stringify({
+        room: this.spaceId,
+        body: JSON.stringify({ body: emoji, type: 2, v: 2 }),
+      }),
+      type: 2,
+    });
+    this.ws.send(payload);
+  }
+
   private handleMessage(raw: string) {
     let msg: any;
     try {
@@ -127,6 +151,14 @@ export class ChatClient extends EventEmitter {
       this.emit('muteStateChanged', {
         userId: body.guestRemoteID,
         muted: false,
+      });
+    }
+    // Example of guest reaction
+    if (body?.type === 2) {
+      console.log('[ChatClient] Emiting guest reaction event =>', body);
+      this.emit('guestReaction', {
+        displayName: body.displayName,
+        emoji: body.body,
       });
     }
   }

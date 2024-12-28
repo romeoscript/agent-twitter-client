@@ -66,6 +66,13 @@ async function main() {
     console.log('[Test] Speaker request =>', req);
     await space.approveSpeaker(req.userId, req.sessionUUID);
   });
+  // When a user react, reply with some reactions to test the flow
+  space.on('guestReaction', (evt) => {
+    // Pick a random emoji from the list
+    const emojis = ['💯', '✨', '🙏', '🎮'];
+    const emoji = emojis[Math.floor(Math.random() * emojis.length)];
+    space.reactWithEmoji(emoji);
+  });
   space.on('error', (err) => {
     console.error('[Test] Space Error =>', err);
   });
@@ -109,9 +116,10 @@ async function main() {
   }
 
   // 5) Send beep every 5s
-  // setInterval(() => {
-  //   sendBeep().catch((err) => console.error('[Test] beep error =>', err));
-  // }, 5000);
+  //setInterval(() => {
+  //  sendBeep().catch((err) => console.error('[Test] beep error =>', err));
+  //}, 5000);
+
 
   console.log('[Test] Space is running... press Ctrl+C to exit.');
 
