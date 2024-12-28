@@ -26,6 +26,7 @@
     "test": "jest"
   },
   "dependencies": {
+    "@roamhq/wrtc": "^0.8.0",
     "@sinclair/typebox": "^0.32.20",
     "headers-polyfill": "^3.1.2",
     "json-stable-stringify": "^1.0.2",
@@ -35,7 +36,8 @@
     "tough-cookie": "^4.1.2",
     "tslib": "^2.5.2",
     "twitter-api-v2": "^1.18.2",
-    "undici": "^7.1.1"
+    "undici": "^7.1.1",
+    "ws": "^8.18.0"
   },
   "devDependencies": {
     "@commitlint/cli": "^17.6.3",
@@ -46,6 +48,7 @@
     "@types/node": "^22.9.1",
     "@types/set-cookie-parser": "^2.4.2",
     "@types/tough-cookie": "^4.0.2",
+    "@types/ws": "^8.5.13",
     "@typescript-eslint/eslint-plugin": "^5.59.7",
     "@typescript-eslint/parser": "^5.59.7",
     "dotenv": "^16.4.5",

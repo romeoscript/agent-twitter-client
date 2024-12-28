@@ -71,6 +71,13 @@ import {
   sendDirectMessage,
   SendDirectMessageResponse,
 } from './messages';
+import {
+  fetchAudioSpaceById,
+  fetchAuthenticatePeriscope,
+  fetchBrowseSpaceTopics,
+  fetchCommunitySelectQuery, fetchLiveVideoStreamStatus, fetchLoginTwitterToken
+} from './spaces';
+import {AudioSpace, Community, LiveVideoStreamStatus, LoginTwitterTokenResponse, Subtopic} from './types/spaces';
 
 const twUrl = 'https://twitter.com';
 const UserTweetsUrl =
@@ -900,5 +907,98 @@ export class Scraper {
     }
 
     return res.value;
+  }
+
+  /**
+   * Retrieves the details of an Audio Space by its ID.
+   * @param id The ID of the Audio Space.
+   * @returns The details of the Audio Space.
+   */
+  public async getAudioSpaceById(id: string): Promise<AudioSpace> {
+    const variables = {
+      id,
+      isMetatagsQuery: false,
+      withReplays: true,
+      withListeners: true,
+    };
+
+    return await fetchAudioSpaceById(variables, this.auth);
+  }
+
+  /**
+   * Retrieves available space topics.
+   * @returns An array of space topics.
+   */
+  public async browseSpaceTopics(): Promise<Subtopic[]> {
+    return await fetchBrowseSpaceTopics(this.auth);
+  }
+
+  /**
+   * Retrieves available communities.
+   * @returns An array of communities.
+   */
+  public async communitySelectQuery(): Promise<Community[]> {
+    return await fetchCommunitySelectQuery(this.auth);
+  }
+
+  /**
+   * Retrieves the status of an Audio Space stream by its media key.
+   * @param mediaKey The media key of the Audio Space.
+   * @returns The status of the Audio Space stream.
+   */
+  public async getAudioSpaceStreamStatus(
+      mediaKey: string,
+  ): Promise<LiveVideoStreamStatus> {
+    return await fetchLiveVideoStreamStatus(mediaKey, this.auth);
+  }
+
+  /**
+   * Retrieves the status of an Audio Space by its ID.
+   * This method internally fetches the Audio Space to obtain the media key,
+   * then retrieves the stream status using the media key.
+   * @param audioSpaceId The ID of the Audio Space.
+   * @returns The status of the Audio Space stream.
+   */
+  public async getAudioSpaceStatus(
+      audioSpaceId: string,
+  ): Promise<LiveVideoStreamStatus> {
+    const audioSpace = await this.getAudioSpaceById(audioSpaceId);
+
+    const mediaKey = audioSpace.metadata.media_key;
+    if (!mediaKey) {
+      throw new Error('Media Key not found in Audio Space metadata.');
+    }
+
+    return await this.getAudioSpaceStreamStatus(mediaKey);
+  }
+
+  /**
+   * Authenticates Periscope to obtain a token.
+   * @returns The Periscope authentication token.
+   */
+  public async authenticatePeriscope(): Promise<string> {
+    return await fetchAuthenticatePeriscope(this.auth);
+  }
+
+  /**
+   * Logs in to Twitter via Proxsee using the Periscope JWT.
+   * @param jwt The JWT obtained from AuthenticatePeriscope.
+   * @returns The response containing the cookie and user information.
+   */
+  public async loginTwitterToken(
+      jwt: string,
+  ): Promise<LoginTwitterTokenResponse> {
+    return await fetchLoginTwitterToken(jwt, this.auth);
+  }
+
+  /**
+   * Orchestrates the flow: get token -> login -> return Periscope cookie
+   */
+  public async getPeriscopeCookie(): Promise<string> {
+    const periscopeToken = await this.authenticatePeriscope();
+
+    const loginResponse = await this.loginTwitterToken(periscopeToken);
+
+    return loginResponse.cookie;
   }
 }
