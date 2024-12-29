@@ -44,7 +44,7 @@ export class ChatClient extends EventEmitter {
         resolve();
       });
 
-      this.ws!.on('message', (data) => {
+      this.ws!.on('message', (data: { toString: () => string; }) => {
         this.handleMessage(data.toString());
       });
 
