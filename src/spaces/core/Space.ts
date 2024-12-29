@@ -195,8 +195,9 @@ export class Space extends EventEmitter {
       this.logger.debug('[Space] muteStateChanged =>', evt);
       this.emit('muteStateChanged', evt);
     });
+
     this.chatClient.on('guestReaction', (reaction: GuestReaction) => {
-      console.log('[Space] Guest reaction =>', reaction);
+      this.logger.info('[Space] Guest reaction =>', reaction);
       this.emit('guestReaction', reaction);
     });
   }
