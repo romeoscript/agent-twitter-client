@@ -3,17 +3,29 @@
 import WebSocket from 'ws';
 import { EventEmitter } from 'events';
 import type { SpeakerRequest, OccupancyUpdate } from '../types';
+import { Logger } from '../logger';
+
+interface ChatClientConfig {
+  spaceId: string;
+  accessToken: string;
+  endpoint: string;
+  logger: Logger;
+}
 
 export class ChatClient extends EventEmitter {
   private ws?: WebSocket;
   private connected = false;
+  private logger: Logger;
+  private readonly spaceId: string;
+  private readonly accessToken: string;
+  private endpoint: string;
 
-  constructor(
-    private readonly spaceId: string,
-    private readonly accessToken: string,
-    private readonly endpoint: string,
-  ) {
+  constructor(config: ChatClientConfig) {
     super();
+    this.spaceId = config.spaceId;
+    this.accessToken = config.accessToken;
+    this.endpoint = config.endpoint;
+    this.logger = config.logger;
   }
 
   async connect() {
@@ -21,7 +33,7 @@ export class ChatClient extends EventEmitter {
       'https://',
       'wss://',
     );
-    console.log('[ChatClient] Connecting =>', wsUrl);
+    this.logger.info('[ChatClient] Connecting =>', wsUrl);
 
     this.ws = new WebSocket(wsUrl, {
       headers: {
@@ -34,11 +46,13 @@ export class ChatClient extends EventEmitter {
   }
 
   private setupHandlers(): Promise<void> {
-    if (!this.ws) throw new Error('No WebSocket instance');
+    if (!this.ws) {
+      throw new Error('No WebSocket instance');
+    }
 
     return new Promise((resolve, reject) => {
       this.ws!.on('open', () => {
-        console.log('[ChatClient] Connected');
+        this.logger.info('[ChatClient] Connected');
         this.connected = true;
         this.sendAuthAndJoin();
         resolve();
@@ -49,13 +63,13 @@ export class ChatClient extends EventEmitter {
       });
 
       this.ws!.on('close', () => {
-        console.log('[ChatClient] Closed');
+        this.logger.info('[ChatClient] Closed');
         this.connected = false;
         this.emit('disconnected');
       });
 
       this.ws!.on('error', (err) => {
-        console.error('[ChatClient] Error =>', err);
+        this.logger.error('[ChatClient] Error =>', err);
         reject(err);
       });
     });
@@ -63,14 +77,14 @@ export class ChatClient extends EventEmitter {
 
   private sendAuthAndJoin() {
     if (!this.ws) return;
-    // Auth
+
     this.ws.send(
       JSON.stringify({
         payload: JSON.stringify({ access_token: this.accessToken }),
         kind: 3,
       }),
     );
-    // Join
+
     this.ws.send(
       JSON.stringify({
         payload: JSON.stringify({
@@ -120,7 +134,6 @@ export class ChatClient extends EventEmitter {
 
     const body = safeJson(payload.body);
 
-    // Example of speaker request detection
     if (body.guestBroadcastingEvent === 1) {
       const req: SpeakerRequest = {
         userId: body.guestRemoteID,
@@ -131,7 +144,6 @@ export class ChatClient extends EventEmitter {
       this.emit('speakerRequest', req);
     }
 
-    // Example of occupancy update
     if (typeof body.occupancy === 'number') {
       const update: OccupancyUpdate = {
         occupancy: body.occupancy,
@@ -140,7 +152,6 @@ export class ChatClient extends EventEmitter {
       this.emit('occupancyUpdate', update);
     }
 
-    // Example of mute state
     if (body.guestBroadcastingEvent === 16) {
       this.emit('muteStateChanged', {
         userId: body.guestRemoteID,
@@ -165,6 +176,7 @@ export class ChatClient extends EventEmitter {
 
   async disconnect() {
     if (this.ws) {
+      this.logger.info('[ChatClient] Disconnecting...');
       this.ws.close();
       this.ws = undefined;
       this.connected = false;

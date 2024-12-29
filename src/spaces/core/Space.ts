@@ -11,7 +11,6 @@ import {
   getRegion,
 } from '../utils';
 import type {
-  SpaceConfig,
   BroadcastCreated,
   SpeakerRequest,
   OccupancyUpdate,
@@ -22,6 +21,15 @@ import type {
   SpeakerInfo,
 } from '../types';
 import { Scraper } from '../../scraper';
+import { Logger } from '../logger';
+
+export interface SpaceConfig {
+  mode: 'BROADCAST' | 'LISTEN' | 'INTERACTIVE';
+  title?: string;
+  description?: string;
+  languages?: string[];
+  debug?: boolean;
+}
 
 /**
  * This class orchestrates:
@@ -30,6 +38,9 @@ import { Scraper } from '../../scraper';
  * 3) Approve speakers, push audio, etc.
  */
 export class Space extends EventEmitter {
+  private readonly debug: boolean;
+  private readonly logger: Logger;
+
   private janusClient?: JanusClient;
   private chatClient?: ChatClient;
   private authToken?: string;
@@ -38,15 +49,20 @@ export class Space extends EventEmitter {
   private plugins = new Set<PluginRegistration>();
   private speakers = new Map<string, SpeakerInfo>();
 
-  constructor(private readonly scraper: Scraper) {
+  constructor(
+    private readonly scraper: Scraper,
+    options?: { debug?: boolean },
+  ) {
     super();
+    this.debug = options?.debug ?? false;
+    this.logger = new Logger(this.debug);
   }
 
   public use(plugin: Plugin, config?: Record<string, any>) {
     const registration: PluginRegistration = { plugin, config };
     this.plugins.add(registration);
 
-    console.log('[Space] Plugin added =>', plugin.constructor.name);
+    this.logger.debug('[Space] Plugin added =>', plugin.constructor.name);
 
     plugin.onAttach?.(this);
 
@@ -64,17 +80,12 @@ export class Space extends EventEmitter {
    * Main entry point
    */
   async initialize(config: SpaceConfig) {
-    console.log('[Space] Initializing...');
+    this.logger.debug('[Space] Initializing...');
 
-    // 1) get Periscope cookie
     const cookie = await this.scraper.getPeriscopeCookie();
-
-    // 2) get region
     const region = await getRegion();
-    console.log('[Space] Got region =>', region);
-
-    // 3) create broadcast
-    console.log('[Space] Creating broadcast...');
+    this.logger.debug('[Space] Got region =>', region);
+    this.logger.debug('[Space] Creating broadcast...');
     const broadcast = await createBroadcast({
       description: config.description,
       languages: config.languages,
@@ -83,15 +94,12 @@ export class Space extends EventEmitter {
     });
     this.broadcastInfo = broadcast;
 
-    // 4) Authorize token if needed
-    console.log('[Space] Authorizing token...');
+    this.logger.debug('[Space] Authorizing token...');
     this.authToken = await authorizeToken(cookie);
 
-    // 5) Get TURN servers
-    console.log('[Space] Getting turn servers...');
+    this.logger.debug('[Space] Getting turn servers...');
     const turnServers = await getTurnServers(cookie);
 
-    // 6) Create Janus client
     this.janusClient = new JanusClient({
       webrtcUrl: broadcast.webrtc_gw_url,
       roomId: broadcast.room_id,
@@ -99,11 +107,12 @@ export class Space extends EventEmitter {
       userId: broadcast.broadcast.user_id,
       streamName: broadcast.stream_name,
       turnServers,
+      logger: this.logger,
     });
     await this.janusClient.initialize();
 
     this.janusClient.on('audioDataFromSpeaker', (data: AudioDataWithUser) => {
-      // console.log('[Space] Received PCM from speaker =>', data.userId);
+      this.logger.debug('[Space] Received PCM from speaker =>', data.userId);
       this.handleAudioData(data);
       // You can store or forward to a plugin, run STT, etc.
     });
@@ -111,21 +120,20 @@ export class Space extends EventEmitter {
     this.janusClient.on('subscribedSpeaker', ({ userId, feedId }) => {
       const speaker = this.speakers.get(userId);
       if (!speaker) {
-        console.log(
-          '[Space] subscribedSpeaker => speaker not found for userId=',
+        this.logger.debug(
+          '[Space] subscribedSpeaker => no speaker found',
           userId,
         );
         return;
       }
-
       speaker.janusParticipantId = feedId;
-      console.log(
+      this.logger.debug(
         `[Space] updated speaker info => userId=${userId}, feedId=${feedId}`,
       );
     });
 
     // 7) Publish the broadcast
-    console.log('[Space] Publishing broadcast...');
+    this.logger.debug('[Space] Publishing broadcast...');
     await publishBroadcast({
       title: config.title || '',
       broadcast,
@@ -137,18 +145,20 @@ export class Space extends EventEmitter {
 
     // 8) If interactive, open chat
     if (config.mode === 'INTERACTIVE') {
-      console.log('[Space] Connecting chat...');
-      this.chatClient = new ChatClient(
-        broadcast.room_id,
-        broadcast.access_token,
-        broadcast.endpoint,
-      );
+      this.logger.debug('[Space] Connecting chat...');
+      this.chatClient = new ChatClient({
+        spaceId: broadcast.room_id,
+        accessToken: broadcast.access_token,
+        endpoint: broadcast.endpoint,
+        logger: this.logger,
+      });
       await this.chatClient.connect();
       this.setupChatEvents();
     }
 
+    this.logger.info('[Space] Initialized =>', broadcast.share_url);
+
     this.isInitialized = true;
-    console.log('[Space] Initialized =>', broadcast.share_url);
 
     for (const { plugin, config: pluginConfig } of this.plugins) {
       if (plugin.init) {
@@ -159,7 +169,7 @@ export class Space extends EventEmitter {
       }
     }
 
-    console.log('[Space] All plugins initialized');
+    this.logger.debug('[Space] All plugins initialized');
     return broadcast;
   }
 
@@ -172,13 +182,17 @@ export class Space extends EventEmitter {
     if (!this.chatClient) return;
 
     this.chatClient.on('speakerRequest', (req: SpeakerRequest) => {
-      console.log('[Space] Speaker request =>', req);
+      this.logger.info('[Space] Speaker request =>', req);
       this.emit('speakerRequest', req);
     });
+
     this.chatClient.on('occupancyUpdate', (update: OccupancyUpdate) => {
+      this.logger.debug('[Space] occupancyUpdate =>', update);
       this.emit('occupancyUpdate', update);
     });
+
     this.chatClient.on('muteStateChanged', (evt) => {
+      this.logger.debug('[Space] muteStateChanged =>', evt);
       this.emit('muteStateChanged', evt);
     });
     this.chatClient.on('guestReaction', (reaction: GuestReaction) => {
@@ -199,10 +213,7 @@ export class Space extends EventEmitter {
       throw new Error('[Space] No auth token available');
     }
 
-    this.speakers.set(userId, {
-      userId,
-      sessionUUID,
-    });
+    this.speakers.set(userId, { userId, sessionUUID });
 
     // 1) Call the "request/approve" endpoint
     await this.callApproveEndpoint(
@@ -223,13 +234,11 @@ export class Space extends EventEmitter {
     sessionUUID: string,
   ): Promise<void> {
     const endpoint = 'https://guest.pscp.tv/api/v1/audiospace/request/approve';
-
     const headers = {
       'Content-Type': 'application/json',
       Referer: 'https://x.com/',
       Authorization: authorizationToken,
     };
-
     const body = {
       ntpForBroadcasterFrame: '2208988800024000300',
       ntpForLiveFrame: '2208988800024000300',
@@ -237,7 +246,8 @@ export class Space extends EventEmitter {
       session_uuid: sessionUUID,
     };
 
-    console.log('[Space] Approving speaker =>', endpoint, body);
+    this.logger.debug('[Space] Approving speaker =>', endpoint, body);
+
     const resp = await fetch(endpoint, {
       method: 'POST',
       headers,
@@ -251,7 +261,7 @@ export class Space extends EventEmitter {
       );
     }
 
-    console.log('[Space] Speaker approved =>', userId);
+    this.logger.info('[Space] Speaker approved =>', userId);
   }
 
   /**
@@ -276,9 +286,14 @@ export class Space extends EventEmitter {
       );
     }
 
-    const sessionUUID = speaker.sessionUUID;
-    const janusParticipantId = speaker.janusParticipantId;
-    console.log(sessionUUID, janusParticipantId, speaker);
+    const { sessionUUID, janusParticipantId } = speaker;
+    this.logger.debug(
+      '[Space] removeSpeaker =>',
+      sessionUUID,
+      janusParticipantId,
+      speaker,
+    );
+
     if (!sessionUUID || janusParticipantId === undefined) {
       throw new Error(
         `[Space] removeSpeaker => missing sessionUUID or feedId for userId=${userId}`,
@@ -290,11 +305,11 @@ export class Space extends EventEmitter {
 
     if (!janusHandleId || !janusSessionId) {
       throw new Error(
-        `[Space] removeSpeaker => missing Janus handle or sessionId for userId=${userId}`,
+        `[Space] removeSpeaker => missing Janus handle/session for userId=${userId}`,
       );
     }
 
-    // 1) Call the Twitter eject endpoint
+    // 1) Call the eject endpoint
     await this.callRemoveEndpoint(
       this.broadcastInfo,
       this.authToken,
@@ -308,7 +323,7 @@ export class Space extends EventEmitter {
     // 2) Remove from local speakers map
     this.speakers.delete(userId);
 
-    console.log(`[Space] removeSpeaker => removed userId=${userId}`);
+    this.logger.info(`[Space] removeSpeaker => removed userId=${userId}`);
   }
 
   /**
@@ -324,13 +339,11 @@ export class Space extends EventEmitter {
     webrtcSessionId: number,
   ): Promise<void> {
     const endpoint = 'https://guest.pscp.tv/api/v1/audiospace/stream/eject';
-
     const headers = {
       'Content-Type': 'application/json',
       Referer: 'https://x.com/',
       Authorization: authorizationToken,
     };
-
     const body = {
       ntpForBroadcasterFrame: '2208988800024000300',
       ntpForLiveFrame: '2208988800024000300',
@@ -342,7 +355,8 @@ export class Space extends EventEmitter {
       webrtc_session_id: webrtcSessionId,
     };
 
-    console.log('[Space] Removing speaker =>', endpoint, body);
+    this.logger.debug('[Space] Removing speaker =>', endpoint, body);
+
     const resp = await fetch(endpoint, {
       method: 'POST',
       headers,
@@ -356,7 +370,7 @@ export class Space extends EventEmitter {
       );
     }
 
-    console.log('[Space] Speaker removed => sessionUUID=', sessionUUID);
+    this.logger.debug('[Space] Speaker removed => sessionUUID=', sessionUUID);
   }
 
   pushAudio(samples: Int16Array, sampleRate: number) {
@@ -378,14 +392,14 @@ export class Space extends EventEmitter {
    * Gracefully end the Space (stop broadcast, destroy Janus room, etc.)
    */
   public async finalizeSpace(): Promise<void> {
-    console.log('[Space] finalizeSpace => stopping broadcast gracefully');
+    this.logger.info('[Space] finalizeSpace => stopping broadcast gracefully');
 
     const tasks: Array<Promise<any>> = [];
 
     if (this.janusClient) {
       tasks.push(
         this.janusClient.destroyRoom().catch((err) => {
-          console.error('[Space] destroyRoom error =>', err);
+          this.logger.error('[Space] destroyRoom error =>', err);
         }),
       );
     }
@@ -396,7 +410,7 @@ export class Space extends EventEmitter {
           broadcastId: this.broadcastInfo.room_id,
           chatToken: this.broadcastInfo.access_token,
         }).catch((err) => {
-          console.error('[Space] endAudiospace error =>', err);
+          this.logger.error('[Space] endAudiospace error =>', err);
         }),
       );
     }
@@ -404,13 +418,14 @@ export class Space extends EventEmitter {
     if (this.janusClient) {
       tasks.push(
         this.janusClient.leaveRoom().catch((err) => {
-          console.error('[Space] leaveRoom error =>', err);
+          this.logger.error('[Space] leaveRoom error =>', err);
         }),
       );
     }
 
     await Promise.all(tasks);
-    console.log('[Space] finalizeSpace => done.');
+
+    this.logger.info('[Space] finalizeSpace => done.');
   }
 
   /**
@@ -426,13 +441,13 @@ export class Space extends EventEmitter {
       Referer: 'https://x.com/',
       Authorization: this.authToken || '',
     };
-
     const body = {
       broadcast_id: params.broadcastId,
       chat_token: params.chatToken,
     };
 
-    console.log('[Space] endAudiospace =>', body);
+    this.logger.debug('[Space] endAudiospace =>', body);
+
     const resp = await fetch(url, {
       method: 'POST',
       headers,
@@ -443,19 +458,20 @@ export class Space extends EventEmitter {
       const errText = await resp.text();
       throw new Error(`[Space] endAudiospace => ${resp.status} ${errText}`);
     }
+
     const json = await resp.json();
-    console.log('[Space] endAudiospace => success =>', json);
+    this.logger.debug('[Space] endAudiospace => success =>', json);
   }
 
   public getSpeakers(): SpeakerInfo[] {
     return Array.from(this.speakers.values());
   }
 
-  async stop() {
-    console.log('[Space] Stopping...');
+  public async stop() {
+    this.logger.info('[Space] Stopping...');
 
     await this.finalizeSpace().catch((err) => {
-      console.error('[Space] finalizeBroadcast error =>', err);
+      this.logger.error('[Space] finalizeBroadcast error =>', err);
     });
 
     if (this.chatClient) {

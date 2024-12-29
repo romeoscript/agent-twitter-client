@@ -1,16 +1,27 @@
-// src/core/audio.ts
+// src/core/JanusAudio.ts
 
 import { EventEmitter } from 'events';
 import wrtc from '@roamhq/wrtc';
 const { nonstandard } = wrtc;
 const { RTCAudioSource, RTCAudioSink } = nonstandard;
+import { Logger } from '../logger';
+
+interface AudioSourceOptions {
+  logger?: Logger;
+}
+
+interface AudioSinkOptions {
+  logger?: Logger;
+}
 
 export class JanusAudioSource extends EventEmitter {
   private source: any;
-  private track: MediaStreamTrack;
+  private readonly track: MediaStreamTrack;
+  private logger?: Logger;
 
-  constructor() {
+  constructor(options?: AudioSourceOptions) {
     super();
+    this.logger = options?.logger;
     this.source = new RTCAudioSource();
     this.track = this.source.createTrack();
   }
@@ -20,6 +31,11 @@ export class JanusAudioSource extends EventEmitter {
   }
 
   pushPcmData(samples: Int16Array, sampleRate: number, channels = 1) {
+    if (this.logger?.isDebugEnabled()) {
+      this.logger?.debug(
+        `[JanusAudioSource] pushPcmData => sampleRate=${sampleRate}, channels=${channels}`,
+      );
+    }
     this.source.onData({
       samples,
       sampleRate,
@@ -33,12 +49,14 @@ export class JanusAudioSource extends EventEmitter {
 export class JanusAudioSink extends EventEmitter {
   private sink: any;
   private active = true;
+  private logger?: Logger;
 
-  constructor(track: MediaStreamTrack) {
+  constructor(track: MediaStreamTrack, options?: AudioSinkOptions) {
     super();
-    if (track.kind !== 'audio')
+    this.logger = options?.logger;
+    if (track.kind !== 'audio') {
       throw new Error('JanusAudioSink must be an audio track');
-
+    }
     this.sink = new RTCAudioSink(track);
 
     this.sink.ondata = (frame: {
@@ -48,12 +66,20 @@ export class JanusAudioSink extends EventEmitter {
       channelCount: number;
     }) => {
       if (!this.active) return;
+      if (this.logger?.isDebugEnabled()) {
+        this.logger?.debug(
+          `[JanusAudioSink] ondata => sampleRate=${frame.sampleRate}, bitsPerSample=${frame.bitsPerSample}, channelCount=${frame.channelCount}`,
+        );
+      }
       this.emit('audioData', frame);
     };
   }
 
   stop() {
     this.active = false;
+    if (this.logger?.isDebugEnabled()) {
+      this.logger?.debug('[JanusAudioSink] stop');
+    }
     this.sink?.stop();
   }
 }

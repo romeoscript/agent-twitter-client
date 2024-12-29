@@ -31,13 +31,6 @@ export interface GuestReaction {
   emoji: string;
 }
 
-export interface SpaceConfig {
-  mode: 'BROADCAST' | 'LISTEN' | 'INTERACTIVE';
-  title?: string;
-  description?: string;
-  languages?: string[];
-}
-
 export interface BroadcastCreated {
   room_id: string;
   credential: string;

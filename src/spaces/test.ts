@@ -1,9 +1,8 @@
 // src/test.ts
 
 import 'dotenv/config';
-import { Space } from './core/Space';
+import { Space, SpaceConfig } from './core/Space';
 import { Scraper } from '../scraper';
-import { SpaceConfig } from './types';
 import { RecordToDiskPlugin } from './plugins/RecordToDiskPlugin';
 import { SttTtsPlugin } from './plugins/SttTtsPlugin';
 import { IdleMonitorPlugin } from './plugins/IdleMonitorPlugin';
