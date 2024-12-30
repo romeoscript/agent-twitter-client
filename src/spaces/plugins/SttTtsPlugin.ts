@@ -3,7 +3,7 @@
 import fs from 'fs';
 import path from 'path';
 import { spawn } from 'child_process';
-import { Plugin, AudioDataWithUser } from '../types';
+import { AudioDataWithUser, Plugin } from '../types';
 import { Space } from '../core/Space';
 import { JanusClient } from '../core/JanusClient';
 
@@ -22,17 +22,10 @@ interface PluginConfig {
   }>;
 }
 
-/**
- * MVP plugin for speech-to-text (OpenAI) + conversation + TTS (ElevenLabs)
- * Approach:
- *   - Collect each speaker's unmuted PCM in a memory buffer (only if above silence threshold)
- *   - On speaker mute -> flush STT -> GPT -> TTS -> push to Janus
- */
 export class SttTtsPlugin implements Plugin {
   private space?: Space;
   private janus?: JanusClient;
 
-  // OpenAI + ElevenLabs
   private openAiApiKey?: string;
   private elevenLabsApiKey?: string;
 
@@ -40,27 +33,20 @@ export class SttTtsPlugin implements Plugin {
   private gptModel = 'gpt-3.5-turbo';
   private voiceId = '21m00Tcm4TlvDq8ikWAM';
   private elevenLabsModel = 'eleven_monolingual_v1';
-
   private systemPrompt = 'You are a helpful AI assistant.';
   private chatContext: Array<{
     role: 'system' | 'user' | 'assistant';
     content: string;
   }> = [];
 
-  /**
-   * userId => arrayOfChunks (PCM Int16)
-   */
+  // For buffering PCM data from each speaker
   private pcmBuffers = new Map<string, Int16Array[]>();
-
-  /**
-   * Track mute states: userId => boolean (true=unmuted)
-   */
   private speakerUnmuted = new Map<string, boolean>();
+  private silenceThreshold = 50;
 
-  /**
-   * For ignoring near-silence frames (if amplitude < threshold)
-   */
-  private silenceThreshold = 50; // default amplitude threshold
+  // TTS queue for sequentially speaking
+  private ttsQueue: string[] = [];
+  private isSpeaking = false;
 
   onAttach(space: Space) {
     console.log('[SttTtsPlugin] onAttach => space was attached');
@@ -86,29 +72,26 @@ export class SttTtsPlugin implements Plugin {
       this.voiceId = config.voiceId;
     }
     if (config?.elevenLabsModel) {
-      this.voiceId = config.elevenLabsModel;
+      this.elevenLabsModel = config.elevenLabsModel;
     }
-
-    if (config.systemPrompt) {
+    if (config?.systemPrompt) {
       this.systemPrompt = config.systemPrompt;
     }
-    if (config.chatContext) {
+    if (config?.chatContext) {
       this.chatContext = config.chatContext;
     }
     console.log('[SttTtsPlugin] Plugin config =>', config);
 
-    // Listen for mute state changes to trigger STT flush
+    // Listen for mute events
     this.space.on(
       'muteStateChanged',
       (evt: { userId: string; muted: boolean }) => {
         console.log('[SttTtsPlugin] Speaker muteStateChanged =>', evt);
         if (evt.muted) {
-          // speaker just got muted => flush STT
           this.handleMute(evt.userId).catch((err) =>
             console.error('[SttTtsPlugin] handleMute error =>', err),
           );
         } else {
-          // unmuted => start buffering
           this.speakerUnmuted.set(evt.userId, true);
           if (!this.pcmBuffers.has(evt.userId)) {
             this.pcmBuffers.set(evt.userId, []);
@@ -118,25 +101,18 @@ export class SttTtsPlugin implements Plugin {
     );
   }
 
-  /**
-   * Called whenever we receive PCM from a speaker
-   */
   onAudioData(data: AudioDataWithUser): void {
-    // Skip if speaker is muted or not tracked
     if (!this.speakerUnmuted.get(data.userId)) return;
 
-    // Optional: detect silence
     let maxVal = 0;
     for (let i = 0; i < data.samples.length; i++) {
       const val = Math.abs(data.samples[i]);
       if (val > maxVal) maxVal = val;
     }
     if (maxVal < this.silenceThreshold) {
-      // It's near-silence => skip
       return;
     }
 
-    // Add chunk
     let arr = this.pcmBuffers.get(data.userId);
     if (!arr) {
       arr = [];
@@ -145,23 +121,19 @@ export class SttTtsPlugin implements Plugin {
     arr.push(data.samples);
   }
 
-  /**
-   * On speaker mute => flush STT => GPT => TTS => push to Janus
-   */
   private async handleMute(userId: string): Promise<void> {
     this.speakerUnmuted.set(userId, false);
     const chunks = this.pcmBuffers.get(userId) || [];
-    this.pcmBuffers.set(userId, []); // reset
+    this.pcmBuffers.set(userId, []);
 
     if (!chunks.length) {
       console.log('[SttTtsPlugin] No audio chunks for user =>', userId);
       return;
     }
     console.log(
-      `[SttTtsPlugin] Flushing STT buffer for user=${userId}, total chunks=${chunks.length}`,
+      `[SttTtsPlugin] Flushing STT buffer for user=${userId}, chunks=${chunks.length}`,
     );
 
-    // 1) Merge chunks
     const totalLen = chunks.reduce((acc, c) => acc + c.length, 0);
     const merged = new Int16Array(totalLen);
     let offset = 0;
@@ -170,44 +142,60 @@ export class SttTtsPlugin implements Plugin {
       offset += c.length;
     }
 
-    // 2) Convert PCM -> WAV (48kHz) for STT
+    // Convert PCM to WAV for STT
     const wavPath = await this.convertPcmToWav(merged, 48000);
     console.log('[SttTtsPlugin] WAV ready =>', wavPath);
 
-    // 3) STT with OpenAI Whisper
+    // Whisper STT
     const sttText = await this.transcribeWithOpenAI(wavPath, this.sttLanguage);
     fs.unlinkSync(wavPath);
+
     if (!sttText.trim()) {
       console.log('[SttTtsPlugin] No speech recognized for user =>', userId);
       return;
     }
     console.log(`[SttTtsPlugin] STT => user=${userId}, text="${sttText}"`);
 
-    // 4) GPT
+    // GPT answer
     const replyText = await this.askChatGPT(sttText);
     console.log(`[SttTtsPlugin] GPT => user=${userId}, reply="${replyText}"`);
 
-    // 5) TTS => returns MP3
-    const ttsAudio = await this.elevenLabsTts(replyText);
-    console.log('[SttTtsPlugin] TTS => got MP3 size=', ttsAudio.length);
+    // Use the standard speak method with queue
+    await this.speakText(replyText);
+  }
 
-    // 6) Convert MP3 -> PCM (48kHz, mono)
-    const pcm = await this.convertMp3ToPcm(ttsAudio, 48000);
-    console.log(
-      '[SttTtsPlugin] TTS => converted to PCM => frames=',
-      pcm.length,
-    );
-
-    // 7) Push frames to Janus
-    if (this.janus) {
-      await this.streamToJanus(pcm, 48000);
-      console.log('[SttTtsPlugin] TTS => done streaming to space');
+  /**
+   * Public method to queue a TTS request
+   */
+  public async speakText(text: string): Promise<void> {
+    this.ttsQueue.push(text);
+    if (!this.isSpeaking) {
+      this.isSpeaking = true;
+      this.processTtsQueue().catch((err) => {
+        console.error('[SttTtsPlugin] processTtsQueue error =>', err);
+      });
     }
   }
 
   /**
-   * Convert Int16 PCM -> WAV using ffmpeg
+   * Process TTS requests one by one
    */
+  private async processTtsQueue(): Promise<void> {
+    while (this.ttsQueue.length > 0) {
+      const text = this.ttsQueue.shift();
+      if (!text) continue;
+
+      try {
+        const ttsAudio = await this.elevenLabsTts(text);
+        const pcm = await this.convertMp3ToPcm(ttsAudio, 48000);
+        await this.streamToJanus(pcm, 48000);
+      } catch (err) {
+        console.error('[SttTtsPlugin] TTS streaming error =>', err);
+      }
+    }
+    this.isSpeaking = false;
+  }
+
   private convertPcmToWav(
     samples: Int16Array,
     sampleRate: number,
@@ -275,19 +263,13 @@ export class SttTtsPlugin implements Plugin {
           body: formData,
         },
       );
-
-      // Handle errors
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('[SttTtsPlugin] API Error:', errorText);
+        console.error('[SttTtsPlugin] OpenAI API Error:', errorText);
         throw new Error(`OpenAI API error: ${response.status} ${errorText}`);
       }
-
-      // Parse response
       const data = (await response.json()) as { text: string };
-      const text = data.text?.trim() || '';
-      console.log('[SttTtsPlugin] Transcription =>', text);
-      return text;
+      return data.text?.trim() || '';
     } catch (err) {
       console.error('[SttTtsPlugin] OpenAI STT Error =>', err);
       throw new Error('OpenAI STT failed');
@@ -302,8 +284,6 @@ export class SttTtsPlugin implements Plugin {
       throw new Error('[SttTtsPlugin] No OpenAI API key for ChatGPT');
     }
     const url = 'https://api.openai.com/v1/chat/completions';
-
-    // Build the final array of messages
     const messages = [
       { role: 'system', content: this.systemPrompt },
       ...this.chatContext,
@@ -331,11 +311,8 @@ export class SttTtsPlugin implements Plugin {
 
     const json = await resp.json();
     const reply = json.choices?.[0]?.message?.content || '';
-
-    // Optionally store the conversation in the chatContext
     this.chatContext.push({ role: 'user', content: userText });
     this.chatContext.push({ role: 'assistant', content: reply });
-
     return reply.trim();
   }
 
@@ -389,11 +366,12 @@ export class SttTtsPlugin implements Plugin {
         'pipe:1',
       ]);
       let raw = Buffer.alloc(0);
+
       ff.stdout.on('data', (chunk: Buffer) => {
         raw = Buffer.concat([raw, chunk]);
       });
       ff.stderr.on('data', () => {
-        /* ignore ffmpeg logs */
+        // ignoring ffmpeg logs
       });
       ff.on('close', (code) => {
         if (code !== 0) {
@@ -407,6 +385,7 @@ export class SttTtsPlugin implements Plugin {
         );
         resolve(samples);
       });
+
       ff.stdin.write(mp3Buf);
       ff.stdin.end();
     });
@@ -420,40 +399,22 @@ export class SttTtsPlugin implements Plugin {
     samples: Int16Array,
     sampleRate: number,
   ): Promise<void> {
-    // 10 ms => 480 samples @48k
-    const FRAME_SIZE = 480;
+    const FRAME_SIZE = Math.floor(sampleRate * 0.01); // 10ms frames => 480 @48kHz
 
     for (
       let offset = 0;
       offset + FRAME_SIZE <= samples.length;
       offset += FRAME_SIZE
     ) {
-      // Option 1: subarray + .set
       const frame = new Int16Array(FRAME_SIZE);
       frame.set(samples.subarray(offset, offset + FRAME_SIZE));
-
       this.janus?.pushLocalAudio(frame, sampleRate, 1);
+
+      // Short pause so we don't overload
       await new Promise((r) => setTimeout(r, 10));
     }
   }
 
-  public async speakText(text: string): Promise<void> {
-    // 1) TTS => MP3
-    const ttsAudio = await this.elevenLabsTts(text);
-
-    // 2) Convert MP3 -> PCM
-    const pcm = await this.convertMp3ToPcm(ttsAudio, 48000);
-
-    // 3) Stream to Janus
-    if (this.janus) {
-      await this.streamToJanus(pcm, 48000);
-      console.log('[SttTtsPlugin] speakText => done streaming to space');
-    }
-  }
-
-  /**
-   * Change the system prompt at runtime.
-   */
   public setSystemPrompt(prompt: string) {
     this.systemPrompt = prompt;
     console.log('[SttTtsPlugin] setSystemPrompt =>', prompt);
@@ -490,5 +451,7 @@ export class SttTtsPlugin implements Plugin {
     console.log('[SttTtsPlugin] cleanup => releasing resources');
     this.pcmBuffers.clear();
     this.speakerUnmuted.clear();
+    this.ttsQueue = [];
+    this.isSpeaking = false;
   }
 }

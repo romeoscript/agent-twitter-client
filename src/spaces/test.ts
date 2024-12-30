@@ -6,6 +6,7 @@ import { Scraper } from '../scraper';
 import { RecordToDiskPlugin } from './plugins/RecordToDiskPlugin';
 import { SttTtsPlugin } from './plugins/SttTtsPlugin';
 import { IdleMonitorPlugin } from './plugins/IdleMonitorPlugin';
+import { HlsRecordPlugin } from './plugins/HlsRecordPlugin';
 
 /**
  * Main test entry point
@@ -21,11 +22,23 @@ async function main() {
   );
 
   // 2) Create the Space instance
-  const space = new Space(scraper);
+  // Set debug=true if you want more logs
+  const space = new Space(scraper, { debug: false });
 
-  // Add a plugin to record audio
+  // --------------------------------------------------------------------------------
+  // EXAMPLE 1: Record raw speaker audio via RecordToDiskPlugin (local plugin approach)
+  // --------------------------------------------------------------------------------
   const recordPlugin = new RecordToDiskPlugin();
   space.use(recordPlugin);
+
+  // --------------------------------------------------------------------------------
+  // EXAMPLE 2: HLSRecordPlugin => record final Space mix as .ts file via HLS
+  // (Requires the "scraper" to fetch the HLS URL, and ffmpeg installed.)
+  // --------------------------------------------------------------------------------
+  const hlsPlugin = new HlsRecordPlugin();
+  // If you want, you can override the default output path in pluginConfig, for example:
+  // space.use(hlsPlugin, { outputPath: '/tmp/my_custom_space.ts' });
+  space.use(hlsPlugin);
 
   // Create our TTS/STT plugin instance
   const sttTtsPlugin = new SttTtsPlugin();
@@ -112,15 +125,15 @@ async function main() {
     // Remove the speaker after 10 seconds (testing only)
     setTimeout(() => {
       console.log(
-        `[Test] Removing speaker => userId=${req.userId} (after 10s)`,
+        `[Test] Removing speaker => userId=${req.userId} (after 60s)`,
       );
       space.removeSpeaker(req.userId).catch((err) => {
         console.error('[Test] removeSpeaker error =>', err);
       });
-    }, 10_000);
+    }, 60_000);
   });
 
-  // When a user react, reply with some reactions to test the flow
+  // When a user reacts, send back an emoji to test the flow
   space.on('guestReaction', (evt) => {
     // Pick a random emoji from the list
     const emojis = ['💯', '✨', '🙏', '🎮'];
@@ -155,25 +168,19 @@ async function main() {
   async function sendBeep() {
     console.log('[Test] Starting beep...');
     for (let offset = 0; offset < beepFull.length; offset += FRAME_SIZE) {
-      // subarray => simple "view"
       const portion = beepFull.subarray(offset, offset + FRAME_SIZE);
-
-      // Make a real copy
       const frame = new Int16Array(FRAME_SIZE);
       frame.set(portion);
-
-      // Now frame.length = 160, and frame.byteLength = 320
       space.pushAudio(frame, sampleRate);
-
       await new Promise((r) => setTimeout(r, 10));
     }
     console.log('[Test] Finished beep');
   }
 
-  // 5) Send beep every 5s
-  //setInterval(() => {
-  //  sendBeep().catch((err) => console.error('[Test] beep error =>', err));
-  //}, 5000);
+  // Example: Send beep every 5s (currently commented out)
+  // setInterval(() => {
+  //   sendBeep().catch((err) => console.error('[Test] beep error =>', err));
+  // }, 5000);
 
   console.log('[Test] Space is running... press Ctrl+C to exit.');
 

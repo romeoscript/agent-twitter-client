@@ -9,5 +9,6 @@ export { SttTtsPlugin } from './spaces/plugins/SttTtsPlugin'
 export { RecordToDiskPlugin } from './spaces/plugins/RecordToDiskPlugin'
 export { MonitorAudioPlugin } from './spaces/plugins/MonitorAudioPlugin'
 export { IdleMonitorPlugin } from './spaces/plugins/IdleMonitorPlugin'
+export { HlsRecordPlugin } from './spaces/plugins/HlsRecordPlugin'
 
 export * from './types/spaces'
