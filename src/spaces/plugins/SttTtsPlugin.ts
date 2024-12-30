@@ -22,6 +22,12 @@ interface PluginConfig {
   }>;
 }
 
+/**
+ * MVP plugin for speech-to-text (OpenAI) + conversation + TTS (ElevenLabs)
+ * Approach:
+ *   - Collect each speaker's unmuted PCM in a memory buffer (only if above silence threshold)
+ *   - On speaker mute -> flush STT -> GPT -> TTS -> push to Janus
+ */
 export class SttTtsPlugin implements Plugin {
   private space?: Space;
   private janus?: JanusClient;
@@ -39,9 +45,19 @@ export class SttTtsPlugin implements Plugin {
     content: string;
   }> = [];
 
-  // For buffering PCM data from each speaker
+  /**
+   * userId => arrayOfChunks (PCM Int16)
+   */
   private pcmBuffers = new Map<string, Int16Array[]>();
+
+  /**
+   * Track mute states: userId => boolean (true=unmuted)
+   */
   private speakerUnmuted = new Map<string, boolean>();
+
+  /**
+   * For ignoring near-silence frames (if amplitude < threshold)
+   */
   private silenceThreshold = 50;
 
   // TTS queue for sequentially speaking
@@ -101,6 +117,9 @@ export class SttTtsPlugin implements Plugin {
     );
   }
 
+  /**
+   * Called whenever we receive PCM from a speaker
+   */
   onAudioData(data: AudioDataWithUser): void {
     if (!this.speakerUnmuted.get(data.userId)) return;
 
@@ -121,6 +140,9 @@ export class SttTtsPlugin implements Plugin {
     arr.push(data.samples);
   }
 
+  /**
+   * On speaker mute => flush STT => GPT => TTS => push to Janus
+   */
   private async handleMute(userId: string): Promise<void> {
     this.speakerUnmuted.set(userId, false);
     const chunks = this.pcmBuffers.get(userId) || [];
@@ -399,6 +421,7 @@ export class SttTtsPlugin implements Plugin {
     samples: Int16Array,
     sampleRate: number,
   ): Promise<void> {
+    // TODO: Check if better than 480 fixed
     const FRAME_SIZE = Math.floor(sampleRate * 0.01); // 10ms frames => 480 @48kHz
 
     for (
