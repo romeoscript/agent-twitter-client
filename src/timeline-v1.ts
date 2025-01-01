@@ -78,7 +78,6 @@ export interface SearchResultRaw {
 
 export interface TimelineArticleResultRaw {
   id?: string;
-  rest_id?: string;
   title?: string;
   preview_text?: string;
   cover_media?: {
@@ -119,6 +118,7 @@ export interface TimelineArticleResultRaw {
     };
   }[];
 }
+
 export interface TimelineResultRaw {
   rest_id?: string;
   __typename?: string;
@@ -138,6 +138,11 @@ export interface TimelineResultRaw {
       result?: {
         text?: string;
       };
+    };
+  };
+  article?: {
+    article_results?: {
+      result?: TimelineArticleResultRaw;
     };
   };
   quoted_status_result?: {
