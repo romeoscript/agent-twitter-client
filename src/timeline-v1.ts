@@ -78,6 +78,7 @@ export interface SearchResultRaw {
 
 export interface TimelineArticleResultRaw {
   id?: string;
+  rest_id?: string;
   title?: string;
   preview_text?: string;
   cover_media?: {

@@ -451,7 +451,7 @@ export function parseArticle(
           .join('\n\n') ?? '';
       articles.push({
         id,
-        articleId: article.id || '',
+        articleId: article.rest_id || '',
         coverMediaUrl: article.cover_media?.media_info?.original_img_url,
         previewText: article.preview_text || '',
         text,
