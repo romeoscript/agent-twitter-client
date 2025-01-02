@@ -75,34 +75,105 @@ export class JanusClient extends EventEmitter {
     this.logger.info('[JanusClient] Initialization complete');
   }
 
-  public async subscribeSpeaker(userId: string): Promise<void> {
+  public async initializeGuestSpeaker() {
+    this.logger.debug('[JanusClient] initializeGuestSpeaker() called');
+
+    // 1) createSession()
+    this.sessionId = await this.createSession();
+    this.handleId = await this.attachPlugin(); // publisher handle
+    this.pollActive = true;
+    this.startPolling();
+
+    // 2) "joinRoom" but as "publisher" with request=join
+    //    Note: we do NOT "createRoom()" because the room already exists.
+    const evtPromise = this.waitForJanusEvent(
+      (e) =>
+        e.janus === 'event' &&
+        e.plugindata?.plugin === 'janus.plugin.videoroom' &&
+        e.plugindata?.data?.videoroom === 'joined',
+      10000,
+      'Guest Speaker joined event',
+    );
+
+    const body = {
+      request: 'join',
+      room: this.config.roomId,
+      ptype: 'publisher',
+      display: this.config.userId,
+      periscope_user_id: this.config.userId,
+    };
+
+    await this.sendJanusMessage(this.handleId, body);
+    const evt = await evtPromise;
+
+    const data = evt.plugindata?.data;
+    this.publisherId = data.id; // Our own publisherId
+    this.logger.debug(
+      '[JanusClient] guest joined => publisherId=',
+      this.publisherId,
+    );
+
+    const publishers = data.publishers || [];
+    this.logger.debug('[JanusClient] existing publishers =>', publishers);
+
+    // 3) create PeerConnection (with turn servers)
+    this.pc = new RTCPeerConnection({
+      iceServers: [
+        {
+          urls: this.config.turnServers.uris,
+          username: this.config.turnServers.username,
+          credential: this.config.turnServers.password,
+        },
+      ],
+    });
+    this.setupPeerEvents();
+
+    // 4) enableLocalAudio() or whatever you want
+    this.enableLocalAudio();
+
+    // 5) configurePublisher => sends an Offer, waits for Answer
+    await this.configurePublisher();
+
+    await Promise.all(
+      publishers.map((pub: any) => this.subscribeSpeaker(pub.display, pub.id)),
+    );
+
+    this.logger.info('[JanusClient] Guest speaker negotiation complete');
+  }
+
+  public async subscribeSpeaker(
+    userId: string,
+    feedId: number = 0,
+  ): Promise<void> {
     this.logger.debug('[JanusClient] subscribeSpeaker => userId=', userId);
 
     const subscriberHandleId = await this.attachPlugin();
     this.logger.debug('[JanusClient] subscriber handle =>', subscriberHandleId);
 
-    const publishersEvt = await this.waitForJanusEvent(
-      (e) =>
-        e.janus === 'event' &&
-        e.plugindata?.plugin === 'janus.plugin.videoroom' &&
-        e.plugindata?.data?.videoroom === 'event' &&
-        Array.isArray(e.plugindata?.data?.publishers) &&
-        e.plugindata?.data?.publishers.length > 0,
-      8000,
-      'discover feed_id from "publishers"',
-    );
-
-    const list = publishersEvt.plugindata.data.publishers as any[];
-    const pub = list.find(
-      (p) => p.display === userId || p.periscope_user_id === userId,
-    );
-    if (!pub) {
-      throw new Error(
-        `[JanusClient] subscribeSpeaker => No publisher found for userId=${userId}`,
+    if (feedId === 0) {
+      const publishersEvt = await this.waitForJanusEvent(
+        (e) =>
+          e.janus === 'event' &&
+          e.plugindata?.plugin === 'janus.plugin.videoroom' &&
+          e.plugindata?.data?.videoroom === 'event' &&
+          Array.isArray(e.plugindata?.data?.publishers) &&
+          e.plugindata?.data?.publishers.length > 0,
+        8000,
+        'discover feed_id from "publishers"',
       );
+
+      const list = publishersEvt.plugindata.data.publishers as any[];
+      const pub = list.find(
+        (p) => p.display === userId || p.periscope_user_id === userId,
+      );
+      if (!pub) {
+        throw new Error(
+          `[JanusClient] subscribeSpeaker => No publisher found for userId=${userId}`,
+        );
+      }
+      feedId = pub.id;
+      this.logger.debug('[JanusClient] found feedId =>', feedId);
     }
-    const feedId = pub.id;
-    this.logger.debug('[JanusClient] found feedId =>', feedId);
     this.emit('subscribedSpeaker', { userId, feedId });
 
     const joinBody = {
@@ -118,6 +189,7 @@ export class JanusClient extends EventEmitter {
         },
       ],
     };
+
     await this.sendJanusMessage(subscriberHandleId, joinBody);
 
     const attachedEvt = await this.waitForJanusEvent(

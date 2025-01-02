@@ -1,6 +1,7 @@
 // src/types.ts
 
 import { Space } from './core/Space';
+import { SpaceParticipant } from './core/SpaceParticipant';
 
 export interface AudioData {
   bitsPerSample: number; // e.g., 16
@@ -54,20 +55,58 @@ export interface TurnServersInfo {
   uris: string[];
 }
 
+/**
+ * This interface describes how a plugin can integrate with either a Space or a SpaceParticipant.
+ *
+ * - onAttach(...) is called as soon as the plugin is added via .use(plugin).
+ *   This allows the plugin to store references or set up initial states.
+ *
+ * - init(...) is called when the space (or participant) has performed its base initialization
+ *   (e.g., listener mode, basic chat, etc.). Plugins that do not strictly require Janus or speaker mode
+ *   can finalize their setup here.
+ *
+ * - onJanusReady(...) is called only if the plugin needs direct access to a JanusClient instance.
+ *   This happens once the user becomes a speaker (and thus Janus is fully set up).
+ *   For example, a plugin that must subscribe to Janus events immediately at speaker time
+ *   can implement this hook.
+ *
+ * - onAudioData(...) is called whenever raw PCM frames from a speaker are available,
+ *   so the plugin can process or analyze audio data (e.g., STT or logging).
+ *
+ * - cleanup() is called right before the space/participant is torn down or the plugin is removed,
+ *   allowing the plugin to do any necessary resource cleanup.
+ */
 export interface Plugin {
   /**
-   * onAttach is called immediately when .use(plugin) is invoked,
-   * passing the Space instance (if needed for immediate usage).
+   * Called immediately when .use(plugin) is invoked.
+   * This is typically for storing references or minimal setup.
    */
-  onAttach?(space: Space): void;
+  onAttach?(spaceOrParticipant: any): void;
 
   /**
-   * init is called once the Space has *fully* initialized (Janus, broadcast, etc.)
-   * so the plugin can get references to Janus or final config, etc.
+   * Called after the space (or participant) has fully joined in basic mode
+   * (e.g., as a listener with chat). If a plugin only needs chat or HLS,
+   * it can finalize in this method.
    */
-  init?(params: { space: Space; pluginConfig?: Record<string, any> }): void;
+  init?(params: { space: any; pluginConfig?: Record<string, any> }): void;
 
-  onAudioData?(data: AudioDataWithUser): void;
+  /**
+   * Called when the user becomes a speaker and a JanusClient is created or ready.
+   * If a plugin needs to subscribe to Janus events or access the JanusClient directly,
+   * it can do so here.
+   */
+  onJanusReady?(janusClient: any): void;
+
+  /**
+   * Called whenever PCM frames arrive from a speaker.
+   * Allows the plugin to process or analyze the raw audio data.
+   */
+  onAudioData?(data: any): void;
+
+  /**
+   * Called to release any resources or stop any background tasks
+   * when the plugin is removed or the space/participant stops.
+   */
   cleanup?(): void;
 }
 

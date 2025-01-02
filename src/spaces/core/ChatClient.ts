@@ -164,6 +164,16 @@ export class ChatClient extends EventEmitter {
         muted: false,
       });
     }
+
+    if (body.guestBroadcastingEvent === 12) {
+      this.emit('newSpeakerAccepted', {
+        userId: body.guestRemoteID,
+        username: body.guestUsername,
+        sessionUUID: body.sessionUUID,
+      });
+    }
+
+    // TODO: 9 Became speaker?
     // Example of guest reaction
     if (body?.type === 2) {
       this.logger.info('[ChatClient] Emitting guest reaction event =>', body);

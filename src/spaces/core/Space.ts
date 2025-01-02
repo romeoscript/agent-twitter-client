@@ -9,12 +9,12 @@ import {
   publishBroadcast,
   authorizeToken,
   getRegion,
+  muteSpeaker,
+  unmuteSpeaker,
+  setupCommonChatEvents,
 } from '../utils';
 import type {
   BroadcastCreated,
-  SpeakerRequest,
-  OccupancyUpdate,
-  GuestReaction,
   Plugin,
   AudioDataWithUser,
   PluginRegistration,
@@ -180,26 +180,7 @@ export class Space extends EventEmitter {
 
   private setupChatEvents() {
     if (!this.chatClient) return;
-
-    this.chatClient.on('speakerRequest', (req: SpeakerRequest) => {
-      this.logger.info('[Space] Speaker request =>', req);
-      this.emit('speakerRequest', req);
-    });
-
-    this.chatClient.on('occupancyUpdate', (update: OccupancyUpdate) => {
-      this.logger.debug('[Space] occupancyUpdate =>', update);
-      this.emit('occupancyUpdate', update);
-    });
-
-    this.chatClient.on('muteStateChanged', (evt) => {
-      this.logger.debug('[Space] muteStateChanged =>', evt);
-      this.emit('muteStateChanged', evt);
-    });
-
-    this.chatClient.on('guestReaction', (reaction: GuestReaction) => {
-      this.logger.info('[Space] Guest reaction =>', reaction);
-      this.emit('guestReaction', reaction);
-    });
+    setupCommonChatEvents(this.chatClient, this.logger, this);
   }
 
   /**
@@ -466,6 +447,91 @@ export class Space extends EventEmitter {
 
   public getSpeakers(): SpeakerInfo[] {
     return Array.from(this.speakers.values());
+  }
+
+  /**
+   * Mute the host himself (i.e. you).
+   * session_uuid = "" for the host calls.
+   */
+  public async muteHost() {
+    if (!this.authToken) {
+      throw new Error('[Space] No auth token available');
+    }
+    if (!this.broadcastInfo) {
+      throw new Error('[Space] No broadcastInfo');
+    }
+
+    await muteSpeaker({
+      broadcastId: this.broadcastInfo.room_id,
+      sessionUUID: '', // host => empty
+      chatToken: this.broadcastInfo.access_token,
+      authToken: this.authToken,
+    });
+    this.logger.info('[Space] Host muted successfully.');
+  }
+
+  /**
+   * Unmute the host
+   */
+  public async unmuteHost() {
+    if (!this.authToken) throw new Error('[Space] No auth token');
+    if (!this.broadcastInfo) throw new Error('[Space] No broadcastInfo');
+
+    await unmuteSpeaker({
+      broadcastId: this.broadcastInfo.room_id,
+      sessionUUID: '',
+      chatToken: this.broadcastInfo.access_token,
+      authToken: this.authToken,
+    });
+    this.logger.info('[Space] Host unmuted successfully.');
+  }
+
+  /**
+   * Mute a specific speaker (by userId).
+   * We'll look up his sessionUUID in our 'speakers' map.
+   */
+  public async muteSpeaker(userId: string) {
+    if (!this.authToken) {
+      throw new Error('[Space] No auth token available');
+    }
+    if (!this.broadcastInfo) {
+      throw new Error('[Space] No broadcastInfo');
+    }
+
+    const speaker = this.speakers.get(userId);
+    if (!speaker) {
+      throw new Error(`[Space] Speaker not found for userId=${userId}`);
+    }
+
+    await muteSpeaker({
+      broadcastId: this.broadcastInfo.room_id,
+      sessionUUID: speaker.sessionUUID,
+      chatToken: this.broadcastInfo.access_token,
+      authToken: this.authToken,
+    });
+    this.logger.info(`[Space] Muted speaker => userId=${userId}`);
+  }
+
+  public async unmuteSpeaker(userId: string) {
+    if (!this.authToken) {
+      throw new Error('[Space] No auth token available');
+    }
+    if (!this.broadcastInfo) {
+      throw new Error('[Space] No broadcastInfo');
+    }
+
+    const speaker = this.speakers.get(userId);
+    if (!speaker) {
+      throw new Error(`[Space] Speaker not found for userId=${userId}`);
+    }
+
+    await unmuteSpeaker({
+      broadcastId: this.broadcastInfo.room_id,
+      sessionUUID: speaker.sessionUUID,
+      chatToken: this.broadcastInfo.access_token,
+      authToken: this.authToken,
+    });
+    this.logger.info(`[Space] Unmuted speaker => userId=${userId}`);
   }
 
   public async stop() {
