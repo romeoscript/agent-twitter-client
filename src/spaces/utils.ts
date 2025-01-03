@@ -6,6 +6,10 @@ import { ChatClient } from './core/ChatClient';
 import { Logger } from './logger';
 import { EventEmitter } from 'events';
 
+/**
+ * Authorizes a token for guest access, using the provided Periscope cookie.
+ * Returns an authorization token (bearer/JWT-like).
+ */
 export async function authorizeToken(cookie: string): Promise<string> {
   const headers = new Headers({
     'X-Periscope-User-Agent': 'Twitter/m5',
@@ -25,17 +29,25 @@ export async function authorizeToken(cookie: string): Promise<string> {
   });
 
   if (!resp.ok) {
-    throw new Error(`Failed to authorize token => ${resp.status}`);
+    throw new Error(
+      `authorizeToken => request failed with status ${resp.status}`,
+    );
   }
 
   const data = (await resp.json()) as { authorization_token: string };
   if (!data.authorization_token) {
-    throw new Error('authorizeToken: Missing authorization_token in response');
+    throw new Error(
+      'authorizeToken => Missing authorization_token in response',
+    );
   }
 
   return data.authorization_token;
 }
 
+/**
+ * Publishes a newly created broadcast (Space) to make it live/visible.
+ * Generally invoked after creating the broadcast and initializing Janus.
+ */
 export async function publishBroadcast(params: {
   title: string;
   broadcast: BroadcastCreated;
@@ -43,7 +55,7 @@ export async function publishBroadcast(params: {
   janusSessionId?: number;
   janusHandleId?: number;
   janusPublisherId?: number;
-}) {
+}): Promise<void> {
   const headers = new Headers({
     'X-Periscope-User-Agent': 'Twitter/m5',
     'Content-Type': 'application/json',
@@ -69,6 +81,9 @@ export async function publishBroadcast(params: {
   });
 }
 
+/**
+ * Retrieves TURN server credentials and URIs from Periscope.
+ */
 export async function getTurnServers(cookie: string): Promise<TurnServersInfo> {
   const headers = new Headers({
     'X-Periscope-User-Agent': 'Twitter/m5',
@@ -83,12 +98,16 @@ export async function getTurnServers(cookie: string): Promise<TurnServersInfo> {
     headers,
     body: JSON.stringify({ cookie }),
   });
-  if (!resp.ok) throw new Error('Failed to get turn servers => ' + resp.status);
+  if (!resp.ok) {
+    throw new Error(
+      `getTurnServers => request failed with status ${resp.status}`,
+    );
+  }
   return resp.json();
 }
 
 /**
- * Get region from signer.pscp.tv
+ * Obtains the region from signer.pscp.tv, typically used when creating a broadcast.
  */
 export async function getRegion(): Promise<string> {
   const resp = await fetch('https://signer.pscp.tv/region', {
@@ -100,14 +119,15 @@ export async function getRegion(): Promise<string> {
     body: JSON.stringify({}),
   });
   if (!resp.ok) {
-    throw new Error(`Failed to get region => ${resp.status}`);
+    throw new Error(`getRegion => request failed with status ${resp.status}`);
   }
   const data = (await resp.json()) as { region: string };
   return data.region;
 }
 
 /**
- * Create broadcast on Periscope
+ * Creates a new broadcast on Periscope/Twitter.
+ * Used by the host to create the underlying audio-room structure.
  */
 export async function createBroadcast(params: {
   description?: string;
@@ -144,7 +164,9 @@ export async function createBroadcast(params: {
 
   if (!resp.ok) {
     const text = await resp.text();
-    throw new Error(`Failed to create broadcast => ${resp.status} ${text}`);
+    throw new Error(
+      `createBroadcast => request failed with status ${resp.status} ${text}`,
+    );
   }
 
   const data = await resp.json();
@@ -152,8 +174,8 @@ export async function createBroadcast(params: {
 }
 
 /**
- * Access the chat endpoint (proxsee.pscp.tv/api/v2/accessChat).
- * Returns the chat access_token, endpoint, etc.
+ * Acquires chat access info (token, endpoint, etc.) from Periscope.
+ * Needed to connect via WebSocket to the chat server.
  */
 export async function accessChat(
   chatToken: string,
@@ -182,7 +204,7 @@ export async function accessChat(
 }
 
 /**
- * Call /startWatching to be counted as a viewer (session token).
+ * Registers this client as a viewer (POST /startWatching), returning a watch session token.
  */
 export async function startWatching(
   lifecycleToken: string,
@@ -211,12 +233,12 @@ export async function startWatching(
     );
   }
   const json = await resp.json();
-  // Typically returns { session: "..." }
+  // Typically returns { session: "...someToken..." }
   return json.session;
 }
 
 /**
- * Call /stopWatching to end your viewer session.
+ * Deregisters this client from viewing the broadcast (POST /stopWatching).
  */
 export async function stopWatching(
   session: string,
@@ -242,20 +264,18 @@ export async function stopWatching(
 }
 
 /**
- * Join an existing AudioSpace (POST /audiospace/join).
- * Sometimes required before submitting a speaker request, depending on the flow.
- * The server often returns an object like { can_auto_join: false }.
+ * Optional step: join an existing AudioSpace (POST /audiospace/join).
+ * This might be required before you can request speaker.
  */
 export async function joinAudioSpace(params: {
   broadcastId: string;
   chatToken: string;
   authToken: string;
-  joinAsAdmin?: boolean; // default = false
-  shouldAutoJoin?: boolean; // default = false
+  joinAsAdmin?: boolean;
+  shouldAutoJoin?: boolean;
 }): Promise<any> {
   const url = 'https://guest.pscp.tv/api/v1/audiospace/join';
 
-  // This matches the values seen in your DevTools logs
   const body = {
     ntpForBroadcasterFrame: '2208988800031000000',
     ntpForLiveFrame: '2208988800031000000',
@@ -281,14 +301,13 @@ export async function joinAudioSpace(params: {
       `joinAudioSpace => request failed with status ${resp.status}`,
     );
   }
-
-  // Typically returns something like: { "can_auto_join": false }
+  // Typically returns { can_auto_join: boolean } etc.
   return resp.json();
 }
 
 /**
- * Submit a speaker request to the host.
- * This calls /audiospace/request/submit and returns a sessionUUID.
+ * Submits a speaker request (POST /audiospace/request/submit),
+ * returning the session UUID you need for negotiation.
  */
 export async function submitSpeakerRequest(params: {
   broadcastId: string;
@@ -322,18 +341,16 @@ export async function submitSpeakerRequest(params: {
 }
 
 /**
- * Cancels a pending speaker request (POST /audiospace/request/cancel).
- * This is typically called if you have already submitted a request/submit,
- * and you decide to withdraw it before the host approves it.
+ * Cancels a previously submitted speaker request (POST /audiospace/request/cancel).
+ * Only valid if a request/submit was made first with a sessionUUID.
  */
 export async function cancelSpeakerRequest(params: {
   broadcastId: string;
-  sessionUUID: string; // the sessionUUID you got from request/submit
+  sessionUUID: string;
   chatToken: string;
-  authToken: string; // your user's auth token
+  authToken: string;
 }): Promise<void> {
   const url = 'https://guest.pscp.tv/api/v1/audiospace/request/cancel';
-
   const headers = new Headers({
     'Content-Type': 'application/json',
     Authorization: params.authToken,
@@ -352,29 +369,29 @@ export async function cancelSpeakerRequest(params: {
     headers,
     body: JSON.stringify(body),
   });
-
   if (!resp.ok) {
     throw new Error(
       `cancelSpeakerRequest => request failed with status ${resp.status}`,
     );
   }
+  // Typically returns { "success": true }
   return resp.json();
 }
 
 /**
- * Negotiate guest streaming with /audiospace/stream/negotiate.
- * Returns the webrtc_gw_url and janus_jwt used to connect to Janus.
+ * Negotiates a guest streaming session (POST /audiospace/stream/negotiate),
+ * returning a Janus JWT and gateway URL for WebRTC.
  */
 export async function negotiateGuestStream(params: {
   broadcastId: string;
   sessionUUID: string;
-  authToken: string; // if needed for "Authorization"
+  authToken: string;
   cookie: string;
 }): Promise<{ janus_jwt: string; webrtc_gw_url: string }> {
   const url = 'https://guest.pscp.tv/api/v1/audiospace/stream/negotiate';
   const headers = new Headers({
     'Content-Type': 'application/json',
-    Authorization: params.authToken, // Add or remove if needed
+    Authorization: params.authToken,
   });
 
   const body = {
@@ -395,23 +412,22 @@ export async function negotiateGuestStream(params: {
 }
 
 /**
- * Mute speaker (POST /audiospace/muteSpeaker).
- * - If you're the host, session_uuid can be "".
- * - If you're a guest speaker, pass the session_uuid you received from request/submit.
+ * Mutes a speaker (POST /audiospace/muteSpeaker).
+ * If called by the host, sessionUUID is "".
+ * If called by a speaker, pass your own sessionUUID.
  */
 export async function muteSpeaker(params: {
   broadcastId: string;
-  sessionUUID?: string; // empty string if host, or the session_uuid if speaker
-  chatToken: string; // The "2xxx..." token from accessChat
-  authToken: string; // The JWT or Bearer token
+  sessionUUID?: string;
+  chatToken: string;
+  authToken: string;
 }): Promise<void> {
   const url = 'https://guest.pscp.tv/api/v1/audiospace/muteSpeaker';
 
-  // These NTP values are used by the official Twitter client
   const body = {
     ntpForBroadcasterFrame: 2208988800031000000,
     ntpForLiveFrame: 2208988800031000000,
-    session_uuid: params.sessionUUID ?? '', // Host => "", Speaker => actual UUID
+    session_uuid: params.sessionUUID ?? '',
     broadcast_id: params.broadcastId,
     chat_token: params.chatToken,
   };
@@ -430,19 +446,18 @@ export async function muteSpeaker(params: {
     const text = await resp.text();
     throw new Error(`muteSpeaker => ${resp.status} ${text}`);
   }
-  // Returns { "success": true } on success.
 }
 
 /**
- * Unmute speaker (POST /audiospace/unmuteSpeaker).
- * - If you're the host, session_uuid can be "".
- * - If you're a guest speaker, pass your session_uuid from request/submit.
+ * Unmutes a speaker (POST /audiospace/unmuteSpeaker).
+ * If called by the host, sessionUUID is "".
+ * If called by a speaker, pass your own sessionUUID.
  */
 export async function unmuteSpeaker(params: {
   broadcastId: string;
-  sessionUUID?: string; // empty string if host, or the session_uuid if speaker
-  chatToken: string; // The "2xxx..." token from accessChat
-  authToken: string; // The JWT or Bearer token
+  sessionUUID?: string;
+  chatToken: string;
+  authToken: string;
 }): Promise<void> {
   const url = 'https://guest.pscp.tv/api/v1/audiospace/unmuteSpeaker';
 
@@ -468,39 +483,44 @@ export async function unmuteSpeaker(params: {
     const text = await resp.text();
     throw new Error(`unmuteSpeaker => ${resp.status} ${text}`);
   }
-  // Returns { "success": true } on success.
 }
 
 /**
- * Sets up common ChatClient event handlers (occupancy, muteState, etc.).
- * Then re-emits them via a given EventEmitter (e.g. your Space or SpaceParticipant).
+ * Common chat events helper. Attaches listeners to a ChatClient, then re-emits them
+ * through a given EventEmitter (e.g. Space or SpaceParticipant).
  */
 export function setupCommonChatEvents(
   chatClient: ChatClient,
   logger: Logger,
   emitter: EventEmitter,
-) {
-  // Occupancy
+): void {
+  // Occupancy updates
   chatClient.on('occupancyUpdate', (upd) => {
     logger.debug('[ChatEvents] occupancyUpdate =>', upd);
     emitter.emit('occupancyUpdate', upd);
   });
 
-  // Reactions
+  // Reaction events
   chatClient.on('guestReaction', (reaction) => {
     logger.debug('[ChatEvents] guestReaction =>', reaction);
     emitter.emit('guestReaction', reaction);
   });
 
-  // Mute state
+  // Mute state changes
   chatClient.on('muteStateChanged', (evt) => {
     logger.debug('[ChatEvents] muteStateChanged =>', evt);
     emitter.emit('muteStateChanged', evt);
   });
 
-  // Speaker request
+  // Speaker requests
   chatClient.on('speakerRequest', (req) => {
     logger.debug('[ChatEvents] speakerRequest =>', req);
     emitter.emit('speakerRequest', req);
+  });
+
+  // Additional event example: new speaker accepted
+  chatClient.on('newSpeakerAccepted', (info) => {
+    logger.debug('[ChatEvents] newSpeakerAccepted =>', info);
+    emitter.emit('newSpeakerAccepted', info);
   });
 }
