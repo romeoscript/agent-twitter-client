@@ -140,7 +140,7 @@ export class JanusClient extends EventEmitter {
    *  4) configure local PeerConnection
    *  5) subscribe to any existing publishers
    */
-  public async initializeGuestSpeaker(): Promise<void> {
+  public async initializeGuestSpeaker(sessionUUID: string): Promise<void> {
     this.logger.debug('[JanusClient] initializeGuestSpeaker() called');
 
     // 1) Create a new Janus session
@@ -197,7 +197,7 @@ export class JanusClient extends EventEmitter {
     this.enableLocalAudio();
 
     // 4) configurePublisher => generate offer, wait for answer
-    await this.configurePublisher();
+    await this.configurePublisher(sessionUUID);
 
     // 5) Subscribe to each existing publisher
     await Promise.all(
@@ -569,7 +569,7 @@ export class JanusClient extends EventEmitter {
    * Creates an SDP offer and sends "configure" to Janus with it.
    * Used by both host and guest after attach + join.
    */
-  private async configurePublisher(): Promise<void> {
+  private async configurePublisher(sessionUUID: string = ''): Promise<void> {
     if (!this.pc || !this.sessionId || !this.handleId) {
       return;
     }
@@ -588,7 +588,7 @@ export class JanusClient extends EventEmitter {
         request: 'configure',
         room: this.config.roomId,
         periscope_user_id: this.config.userId,
-        session_uuid: '',
+        session_uuid: sessionUUID,
         stream_name: this.config.streamName,
         vidman_token: this.config.credential,
       },

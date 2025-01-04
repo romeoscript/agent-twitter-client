@@ -261,7 +261,7 @@ export class SpaceParticipant extends EventEmitter {
     });
 
     // 4) Initialize the guest speaker session in Janus
-    await this.janusClient.initializeGuestSpeaker();
+    await this.janusClient.initializeGuestSpeaker(this.sessionUUID);
 
     this.janusClient.on('audioDataFromSpeaker', (data: AudioDataWithUser) => {
       this.logger.debug(
@@ -270,11 +270,6 @@ export class SpaceParticipant extends EventEmitter {
       );
       this.handleAudioData(data);
     });
-
-    // Optionally, if a plugin wants direct Janus references, call plugin.onJanusReady(...) here
-    // for (const { plugin } of this.plugins) {
-    //   plugin.onJanusReady?.(this.janusClient);
-    // }
 
     this.logger.info(
       '[SpaceParticipant] Now speaker on the Space =>',
