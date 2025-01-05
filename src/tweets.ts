@@ -446,7 +446,7 @@ export async function createCreateTweetRequest(
   auth: TwitterAuth,
   tweetId?: string,
   mediaData?: { data: Buffer; mediaType: string }[],
-  hideLinkPreview: boolean = false,
+  hideLinkPreview = false,
 ) {
   const onboardingTaskUrl = 'https://api.twitter.com/1.1/onboarding/task.json';
 
