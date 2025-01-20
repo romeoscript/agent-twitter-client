@@ -14,10 +14,12 @@ import {
   Profile,
 } from './profile';
 import {
+  fetchQuotedTweetsPage,
   fetchSearchProfiles,
   fetchSearchTweets,
   SearchMode,
   searchProfiles,
+  searchQuotedTweets,
   searchTweets,
 } from './search';
 import {
@@ -54,6 +56,8 @@ import {
   createCreateNoteTweetRequest,
   createCreateLongTweetRequest,
   getArticle,
+  getAllRetweeters,
+  Retweeter,
 } from './tweets';
 import {
   parseTimelineTweetsV2,
@@ -1049,5 +1053,57 @@ export class Scraper {
    */
   public async grokChat(options: GrokChatOptions): Promise<GrokChatResponse> {
     return await grokChat(options, this.auth);
+  }
+
+  /**
+   * Retrieves all users who retweeted the given tweet.
+   * @param tweetId The ID of the tweet.
+   * @returns An array of users (retweeters).
+   */
+  public async getRetweetersOfTweet(tweetId: string): Promise<Retweeter[]> {
+    return await getAllRetweeters(tweetId, this.auth);
+  }
+
+  /**
+   * Fetches all tweets quoting a given tweet ID by chaining requests
+   * until no more pages are available.
+   * @param quotedTweetId The tweet ID to find quotes of.
+   * @param maxTweetsPerPage Max tweets per page (default 20).
+   * @returns An array of all Tweet objects referencing the given tweet.
+   */
+  public async getAllQuotedTweets(
+    quotedTweetId: string,
+    maxTweetsPerPage = 20,
+  ): Promise<Tweet[]> {
+    const allQuotes: Tweet[] = [];
+    let cursor: string | undefined;
+    let prevCursor: string | undefined;
+
+    while (true) {
+      const page = await fetchQuotedTweetsPage(
+        quotedTweetId,
+        maxTweetsPerPage,
+        this.auth,
+        cursor,
+      );
+
+      // If there's no new tweets, stop
+      if (!page.tweets || page.tweets.length === 0) {
+        break;
+      }
+
+      allQuotes.push(...page.tweets);
+
+      // If next is missing or same => stop
+      if (!page.next || page.next === cursor || page.next === prevCursor) {
+        break;
+      }
+
+      // Move cursors
+      prevCursor = cursor;
+      cursor = page.next;
+    }
+
+    return allQuotes;
   }
 }

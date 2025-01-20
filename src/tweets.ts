@@ -195,6 +195,13 @@ export interface Tweet {
   poll?: PollV2 | null;
 }
 
+export interface Retweeter {
+  rest_id: string;
+  screen_name: string;
+  name: string;
+  description?: string;
+}
+
 export type TweetQuery =
   | Partial<Tweet>
   | ((tweet: Tweet) => boolean | Promise<boolean>);
@@ -1510,4 +1517,176 @@ export async function getArticle(
 
   const articles = parseArticle(res.value);
   return articles.find((article) => article.id === id) ?? null;
+}
+
+/**
+ * Fetches a single page of retweeters for a given tweet, collecting both bottom and top cursors.
+ * Logs each user's description in the process.
+ * All comments must remain in English.
+ */
+export async function fetchRetweetersPage(
+    tweetId: string,
+    auth: TwitterAuth,
+    cursor?: string,
+    count = 40,
+): Promise<{
+  retweeters: Retweeter[];
+  bottomCursor?: string;
+  topCursor?: string;
+}> {
+  const baseUrl =
+      'https://twitter.com/i/api/graphql/VSnHXwLGADxxtetlPnO7xg/Retweeters';
+
+  // Build query parameters
+  const variables = {
+    tweetId,
+    count,
+    cursor,
+    includePromotedContent: true,
+  };
+  const features = {
+    profile_label_improvements_pcf_label_in_post_enabled: true,
+    rweb_tipjar_consumption_enabled: true,
+    responsive_web_graphql_exclude_directive_enabled: true,
+    verified_phone_label_enabled: false,
+    creator_subscriptions_tweet_preview_api_enabled: true,
+    responsive_web_graphql_timeline_navigation_enabled: true,
+    responsive_web_graphql_skip_user_profile_image_extensions_enabled: false,
+    premium_content_api_read_enabled: false,
+    communities_web_enable_tweet_community_results_fetch: true,
+    c9s_tweet_anatomy_moderator_badge_enabled: true,
+    responsive_web_grok_analyze_button_fetch_trends_enabled: false,
+    responsive_web_grok_analyze_post_followups_enabled: true,
+    responsive_web_jetfuel_frame: false,
+    responsive_web_grok_share_attachment_enabled: true,
+    articles_preview_enabled: true,
+    responsive_web_edit_tweet_api_enabled: true,
+    graphql_is_translatable_rweb_tweet_is_translatable_enabled: true,
+    view_counts_everywhere_api_enabled: true,
+    longform_notetweets_consumption_enabled: true,
+    responsive_web_twitter_article_tweet_consumption_enabled: true,
+    tweet_awards_web_tipping_enabled: false,
+    creator_subscriptions_quote_tweet_preview_enabled: false,
+    freedom_of_speech_not_reach_fetch_enabled: true,
+    standardized_nudges_misinfo: true,
+    tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled: true,
+    rweb_video_timestamps_enabled: true,
+    longform_notetweets_rich_text_read_enabled: true,
+    longform_notetweets_inline_media_enabled: true,
+    responsive_web_grok_image_annotation_enabled: false,
+    responsive_web_enhance_cards_enabled: false,
+  };
+
+  // Prepare URL with query params
+  const url = new URL(baseUrl);
+  url.searchParams.set('variables', JSON.stringify(variables));
+  url.searchParams.set('features', JSON.stringify(features));
+
+  // Retrieve necessary cookies and tokens
+  const cookies = await auth.cookieJar().getCookies(url.toString());
+  const xCsrfToken = cookies.find((cookie) => cookie.key === 'ct0');
+
+  const headers = new Headers({
+    authorization: `Bearer ${(auth as any).bearerToken}`,
+    cookie: await auth.cookieJar().getCookieString(url.toString()),
+    'content-type': 'application/json',
+    'x-guest-token': (auth as any).guestToken,
+    'x-twitter-auth-type': 'OAuth2Client',
+    'x-twitter-active-user': 'yes',
+    'x-csrf-token': xCsrfToken?.value || '',
+  });
+
+  const response = await fetch(url.toString(), {
+    method: 'GET',
+    headers,
+  });
+
+  // Update cookies if needed
+  await updateCookieJar(auth.cookieJar(), response.headers);
+
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+
+  const json = await response.json();
+  const instructions =
+      json?.data?.retweeters_timeline?.timeline?.instructions || [];
+
+  const retweeters: Retweeter[] = [];
+  let bottomCursor: string | undefined;
+  let topCursor: string | undefined;
+
+  // Parse the retweeters from instructions
+  for (const instruction of instructions) {
+    if (instruction.type === 'TimelineAddEntries') {
+      for (const entry of instruction.entries) {
+        // If this entry is a user entry
+        if (entry.content?.itemContent?.user_results?.result) {
+          const user = entry.content.itemContent.user_results.result;
+          const description = user.legacy?.name ?? '';
+
+          retweeters.push({
+            rest_id: user.rest_id,
+            screen_name: user.legacy?.screen_name ?? '',
+            name: user.legacy?.name ?? '',
+            description,
+          });
+        }
+
+        // Capture the bottom cursor
+        if (
+            entry.content?.entryType === 'TimelineTimelineCursor' &&
+            entry.content?.cursorType === 'Bottom'
+        ) {
+          bottomCursor = entry.content.value;
+        }
+
+        // Capture the top cursor
+        if (
+            entry.content?.entryType === 'TimelineTimelineCursor' &&
+            entry.content?.cursorType === 'Top'
+        ) {
+          topCursor = entry.content.value;
+        }
+      }
+    }
+  }
+
+  return { retweeters, bottomCursor, topCursor };
+}
+
+/**
+ * Retrieves *all* retweeters by chaining requests until no next cursor is found.
+ * @param tweetId The ID of the tweet.
+ * @param auth The TwitterAuth object for authentication.
+ * @returns A list of all users that retweeted the tweet.
+ */
+export async function getAllRetweeters(
+    tweetId: string,
+    auth: TwitterAuth
+): Promise<Retweeter[]> {
+  let allRetweeters: Retweeter[] = [];
+  let cursor: string | undefined;
+
+  while (true) {
+    // Destructure bottomCursor / topCursor
+    const { retweeters, bottomCursor, topCursor } = await fetchRetweetersPage(
+        tweetId,
+        auth,
+        cursor,
+        40
+    );
+    allRetweeters = allRetweeters.concat(retweeters);
+
+    const newCursor = bottomCursor || topCursor;
+
+    // Stop if there is no new cursor or if it's the same as the old one
+    if (!newCursor || newCursor === cursor) {
+      break;
+    }
+
+    cursor = newCursor;
+  }
+
+  return allRetweeters;
 }
