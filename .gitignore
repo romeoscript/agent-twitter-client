@@ -117,3 +117,6 @@ docs/
 
 # Yarn lockfile
 yarn.lock
+
+cookies.json
+.DS_Store
