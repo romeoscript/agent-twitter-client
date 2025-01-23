@@ -29,6 +29,7 @@ export interface SpaceConfig {
   description?: string;
   languages?: string[];
   debug?: boolean;
+  record: boolean;
 }
 
 /**
@@ -102,6 +103,7 @@ export class Space extends EventEmitter {
       languages: config.languages,
       cookie,
       region,
+      record: config.record,
     });
     this.broadcastInfo = broadcast;
 
