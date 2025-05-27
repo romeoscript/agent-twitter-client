@@ -62,7 +62,7 @@ export class TwitterUserAuth extends TwitterGuestAuth {
 
   async isLoggedIn(): Promise<boolean> {
     const res = await requestApi<TwitterUserAuthVerifyCredentials>(
-      'https://api.twitter.com/1.1/account/verify_credentials.json',
+      'https://api.x.com/1.1/account/verify_credentials.json',
       this,
     );
     if (!res.success) {
@@ -137,7 +137,7 @@ export class TwitterUserAuth extends TwitterGuestAuth {
     }
 
     await requestApi<void>(
-      'https://api.twitter.com/1.1/account/logout.json',
+      'https://api.x.com/1.1/account/logout.json',
       this,
       'POST',
     );
@@ -334,7 +334,7 @@ export class TwitterUserAuth extends TwitterGuestAuth {
     data: TwitterUserAuthFlowRequest,
   ): Promise<FlowTokenResult> {
     const onboardingTaskUrl =
-      'https://api.twitter.com/1.1/onboarding/task.json';
+      'https://api.x.com/1.1/onboarding/task.json';
 
     const token = this.guestToken;
     if (token == null) {
@@ -405,3 +405,4 @@ export class TwitterUserAuth extends TwitterGuestAuth {
     };
   }
 }
+
