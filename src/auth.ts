@@ -211,12 +211,18 @@ export class TwitterGuestAuth implements TwitterAuth {
     headers.set('cookie', await this.getCookieString());
   }
 
-  protected getCookies(): Promise<Cookie[]> {
-    return this.jar.getCookies(this.getCookieJarUrl());
+  protected async getCookies(): Promise<Cookie[]> {
+    const cookies = await Promise.all([
+      this.jar.getCookies(this.getCookieJarUrl()),
+      this.jar.getCookies('https://twitter.com'),
+      this.jar.getCookies('https://x.com'),
+    ]);
+    return cookies.flat();
   }
 
-  protected getCookieString(): Promise<string> {
-    return this.jar.getCookieString(this.getCookieJarUrl());
+  protected async getCookieString(): Promise<string> {
+    const cookies = await this.getCookies();
+    return cookies.map((cookie) => `${cookie.key}=${cookie.value}`).join('; ');
   }
 
   protected async removeCookie(key: string): Promise<void> {
