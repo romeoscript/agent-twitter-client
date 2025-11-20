@@ -1,5 +1,5 @@
 {
-  "name": "agent-twitter-client",
+  "name": "@romeoscript/agent-twitter-client",
   "description": "A twitter client for agents",
   "keywords": [],
   "version": "0.0.16",
@@ -16,7 +16,7 @@
       "require": "./dist/default/cjs/index.js"
     }
   },
-  "author": "ai16z",
+  "author": "romeoscript <romeobourne211@gmail.com>",
   "license": "MIT",
   "scripts": {
     "build": "rimraf dist && rollup -c",
@@ -26,7 +26,9 @@
     "test": "jest"
   },
   "dependencies": {
+    "@roamhq/wrtc": "^0.9.1",
     "@sinclair/typebox": "^0.32.20",
+    "@types/ws": "^8.18.1",
     "headers-polyfill": "^3.1.2",
     "json-stable-stringify": "^1.0.2",
     "node-fetch": "^3.3.2",
@@ -35,7 +37,8 @@
     "tough-cookie": "^4.1.2",
     "tslib": "^2.5.2",
     "twitter-api-v2": "^1.18.2",
-    "undici": "^7.1.1"
+    "undici": "^7.1.1",
+    "ws": "^8.18.3"
   },
   "devDependencies": {
     "@commitlint/cli": "^17.6.3",

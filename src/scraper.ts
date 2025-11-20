@@ -30,6 +30,12 @@ import {
 import { QueryProfilesResponse, QueryTweetsResponse } from './timeline-v1';
 import { getTrends } from './trends';
 import {
+  fetchAuthenticatePeriscope,
+  fetchAudioSpaceById,
+  fetchLiveVideoStreamStatus,
+} from './spaces';
+import type { AudioSpace, LiveVideoStreamStatus } from './types/spaces';
+import {
   Tweet,
   getTweetAnonymous,
   getTweets,
@@ -883,6 +889,50 @@ export class Scraper {
     text: string,
   ): Promise<SendDirectMessageResponse> {
     return await sendDirectMessage(this.auth, conversationId, text);
+  }
+
+  /**
+   * Gets the Periscope cookie for Spaces functionality.
+   * @returns The Periscope authentication token (JWT).
+   */
+  public async getPeriscopeCookie(): Promise<string> {
+    return await fetchAuthenticatePeriscope(this.auth);
+  }
+
+  /**
+   * Fetches details of an Audio Space by its ID.
+   * @param spaceId The ID of the Audio Space to fetch.
+   * @param isMetatagsQuery Whether this is a metatags query (default: false).
+   * @param withReplays Whether to include replays (default: false).
+   * @param withListeners Whether to include listeners (default: true).
+   * @returns The details of the Audio Space.
+   */
+  public async getAudioSpaceById(
+    spaceId: string,
+    isMetatagsQuery: boolean = false,
+    withReplays: boolean = false,
+    withListeners: boolean = true,
+  ): Promise<AudioSpace> {
+    return await fetchAudioSpaceById(
+      {
+        id: spaceId,
+        isMetatagsQuery,
+        withReplays,
+        withListeners,
+      },
+      this.auth,
+    );
+  }
+
+  /**
+   * Fetches the live video stream status for a given media key.
+   * @param mediaKey The media key of the stream.
+   * @returns The live video stream status.
+   */
+  public async getAudioSpaceStreamStatus(
+    mediaKey: string,
+  ): Promise<LiveVideoStreamStatus> {
+    return await fetchLiveVideoStreamStatus(mediaKey, this.auth);
   }
 
   private getAuthOptions(): Partial<TwitterAuthOptions> {
