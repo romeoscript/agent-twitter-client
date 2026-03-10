@@ -21,6 +21,7 @@ import {
 } from './timeline-list';
 import { updateCookieJar } from './requests';
 import {
+  TweetBookmarksTimelineV2Paginator,
   ApiV2Includes,
   MediaObjectV2,
   PlaceV2,
@@ -1560,4 +1561,40 @@ export async function createCreateLongTweetRequest(
   }
 
   return response;
+}
+
+/**
+ * Fetch bookmarked tweets using the v2 API.
+ * @param maxResults The maximum number of results to return.
+ * @param auth The authentication object.
+ * @returns A promise that resolves to a paginator of bookmarked tweets.
+ */
+export async function getBookmarksV2(
+  maxResults: number,
+  auth: TwitterAuth,
+): Promise<TweetBookmarksTimelineV2Paginator> {
+  const client = auth.getV2Client();
+  if (!client) {
+    throw new Error('Twitter v2 client is not initialized.');
+  }
+
+  return await client.v2.bookmarks({
+    max_results: maxResults,
+    'tweet.fields': [
+      'referenced_tweets',
+      'created_at',
+      'description',
+      'entities',
+      'id',
+      'location',
+      'name',
+      'pinned_tweet_id',
+      'profile_image_url',
+      'protected',
+      'public_metrics',
+      'url',
+      'username',
+      'verified',
+    ] as any,
+  });
 }
