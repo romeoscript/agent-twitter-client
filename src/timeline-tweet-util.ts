@@ -47,6 +47,7 @@ function parseVideo(
   const video: Video = {
     id: m.id_str,
     preview: m.media_url_https,
+    alt_text: m.ext_alt_text,
   };
 
   let maxBitrate = 0;

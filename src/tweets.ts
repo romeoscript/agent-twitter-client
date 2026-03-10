@@ -125,6 +125,7 @@ export interface Video {
   id: string;
   preview: string;
   url?: string;
+  alt_text?: string;
 }
 
 export interface PlaceRaw {
@@ -203,7 +204,8 @@ export const features = addApiFeatures({
   interactive_text_enabled: true,
   longform_notetweets_inline_media_enabled: false,
   responsive_web_text_conversations_enabled: false,
-  tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled: false,
+  tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled:
+    false,
   vibe_api_enabled: false,
 });
 
@@ -373,8 +375,8 @@ export function parseTweetV2ToV1(
       end_datetime: poll.end_datetime
         ? poll.end_datetime
         : defaultTweetData?.poll?.end_datetime
-          ? defaultTweetData?.poll?.end_datetime
-          : undefined,
+        ? defaultTweetData?.poll?.end_datetime
+        : undefined,
       options: poll.options.map((option) => ({
         position: option.position,
         label: option.label,
@@ -400,8 +402,9 @@ export function parseTweetV2ToV1(
           preview: media.preview_image_url ?? '',
           url:
             media.variants?.find(
-              (variant) => variant.content_type === 'video/mp4',
+              (variant: any) => variant.content_type === 'video/mp4',
             )?.url ?? '',
+          alt_text: media.alt_text,
         });
       }
     });
@@ -502,14 +505,16 @@ export async function createCreateTweetRequest(
           interactive_text_enabled: true,
           longform_notetweets_inline_media_enabled: false,
           responsive_web_text_conversations_enabled: false,
-          tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled: false,
+          tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled:
+            false,
           vibe_api_enabled: false,
           rweb_lists_timeline_redesign_enabled: true,
           responsive_web_graphql_exclude_directive_enabled: true,
           verified_phone_label_enabled: false,
           creator_subscriptions_tweet_preview_api_enabled: true,
           responsive_web_graphql_timeline_navigation_enabled: true,
-          responsive_web_graphql_skip_user_profile_image_extensions_enabled: false,
+          responsive_web_graphql_skip_user_profile_image_extensions_enabled:
+            false,
           tweetypie_unmention_optimization_enabled: true,
           responsive_web_edit_tweet_api_enabled: true,
           graphql_is_translatable_rweb_tweet_is_translatable_enabled: true,
@@ -530,7 +535,8 @@ export async function createCreateTweetRequest(
           android_graphql_skip_api_media_color_palette: false,
           creator_subscriptions_subscription_count_enabled: false,
           blue_business_profile_image_shape_enabled: false,
-          unified_cards_ad_metadata_container_dynamic_card_content_query_enabled: false,
+          unified_cards_ad_metadata_container_dynamic_card_content_query_enabled:
+            false,
           rweb_video_timestamps_enabled: false,
           c9s_tweet_anatomy_moderator_badge_enabled: false,
           responsive_web_twitter_article_tweet_consumption_enabled: false,
@@ -612,14 +618,16 @@ export async function createCreateNoteTweetRequest(
           interactive_text_enabled: true,
           longform_notetweets_inline_media_enabled: false,
           responsive_web_text_conversations_enabled: false,
-          tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled: false,
+          tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled:
+            false,
           vibe_api_enabled: false,
           rweb_lists_timeline_redesign_enabled: true,
           responsive_web_graphql_exclude_directive_enabled: true,
           verified_phone_label_enabled: false,
           creator_subscriptions_tweet_preview_api_enabled: true,
           responsive_web_graphql_timeline_navigation_enabled: true,
-          responsive_web_graphql_skip_user_profile_image_extensions_enabled: false,
+          responsive_web_graphql_skip_user_profile_image_extensions_enabled:
+            false,
           tweetypie_unmention_optimization_enabled: true,
           responsive_web_edit_tweet_api_enabled: true,
           graphql_is_translatable_rweb_tweet_is_translatable_enabled: true,
@@ -641,7 +649,8 @@ export async function createCreateNoteTweetRequest(
           android_graphql_skip_api_media_color_palette: false,
           creator_subscriptions_subscription_count_enabled: false,
           blue_business_profile_image_shape_enabled: false,
-          unified_cards_ad_metadata_container_dynamic_card_content_query_enabled: false,
+          unified_cards_ad_metadata_container_dynamic_card_content_query_enabled:
+            false,
           rweb_video_timestamps_enabled: false,
           c9s_tweet_anatomy_moderator_badge_enabled: false,
           responsive_web_twitter_article_tweet_consumption_enabled: false,
@@ -1253,14 +1262,16 @@ export async function createQuoteTweetRequest(
           interactive_text_enabled: true,
           longform_notetweets_inline_media_enabled: false,
           responsive_web_text_conversations_enabled: false,
-          tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled: false,
+          tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled:
+            false,
           vibe_api_enabled: false,
           rweb_lists_timeline_redesign_enabled: true,
           responsive_web_graphql_exclude_directive_enabled: true,
           verified_phone_label_enabled: false,
           creator_subscriptions_tweet_preview_api_enabled: true,
           responsive_web_graphql_timeline_navigation_enabled: true,
-          responsive_web_graphql_skip_user_profile_image_extensions_enabled: false,
+          responsive_web_graphql_skip_user_profile_image_extensions_enabled:
+            false,
           tweetypie_unmention_optimization_enabled: true,
           responsive_web_edit_tweet_api_enabled: true,
           graphql_is_translatable_rweb_tweet_is_translatable_enabled: true,
@@ -1281,7 +1292,8 @@ export async function createQuoteTweetRequest(
           android_graphql_skip_api_media_color_palette: false,
           creator_subscriptions_subscription_count_enabled: false,
           blue_business_profile_image_shape_enabled: false,
-          unified_cards_ad_metadata_container_dynamic_card_content_query_enabled: false,
+          unified_cards_ad_metadata_container_dynamic_card_content_query_enabled:
+            false,
           rweb_video_timestamps_enabled: true,
           c9s_tweet_anatomy_moderator_badge_enabled: true,
           responsive_web_twitter_article_tweet_consumption_enabled: false,
@@ -1482,7 +1494,8 @@ export async function createCreateLongTweetRequest(
     responsive_web_graphql_skip_user_profile_image_extensions_enabled: false,
     freedom_of_speech_not_reach_fetch_enabled: true,
     standardized_nudges_misinfo: true,
-    tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled: true,
+    tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled:
+      true,
     responsive_web_graphql_timeline_navigation_enabled: true,
     responsive_web_enhance_cards_enabled: false,
   };
