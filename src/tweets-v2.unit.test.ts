@@ -3,6 +3,7 @@ import {
   getUserTweetsV2,
   retweetTweetV2,
   likeTweetV2,
+  getListTweetsV2,
 } from './tweets';
 import { TwitterAuth } from './auth';
 
@@ -18,6 +19,7 @@ describe('TweetsV2 official', () => {
         me: jest.fn(),
         retweet: jest.fn(),
         like: jest.fn(),
+        listTweets: jest.fn(),
       },
     };
 
@@ -77,6 +79,23 @@ describe('TweetsV2 official', () => {
 
     expect(mockV2Client.v2.me).toHaveBeenCalled();
     expect(mockV2Client.v2.like).toHaveBeenCalledWith('me123', 'tweet123');
+  });
+
+  test('getListTweetsV2 should call v2 listTweets with correct params', async () => {
+    mockV2Client.v2.listTweets.mockResolvedValue({ data: [] });
+
+    await getListTweetsV2('list123', 20, mockAuth);
+
+    expect(mockV2Client.v2.listTweets).toHaveBeenCalledWith(
+      'list123',
+      expect.objectContaining({
+        max_results: 20,
+        'tweet.fields': expect.arrayContaining([
+          'referenced_tweets',
+          'created_at',
+        ]),
+      }),
+    );
   });
 
   test('should throw error if v2 client is not initialized', async () => {
