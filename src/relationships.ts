@@ -162,7 +162,6 @@ export async function followUser(
   username: string,
   auth: TwitterAuth,
 ): Promise<Response> {
-
   // Check if the user is logged in
   if (!(await auth.isLoggedIn())) {
     throw new Error('Must be logged in to follow users');
@@ -194,8 +193,11 @@ export async function followUser(
   });
 
   // Install auth headers
-  await auth.installTo(headers, 'https://api.twitter.com/1.1/friendships/create.json');
-  
+  await auth.installTo(
+    headers,
+    'https://api.twitter.com/1.1/friendships/create.json',
+  );
+
   // Make the follow request using auth.fetch
   const res = await auth.fetch(
     'https://api.twitter.com/1.1/friendships/create.json',
@@ -218,5 +220,91 @@ export async function followUser(
     headers: {
       'Content-Type': 'application/json',
     },
+  });
+}
+
+export async function muteUser(
+  username: string,
+  auth: TwitterAuth,
+): Promise<Response> {
+  if (!(await auth.isLoggedIn())) {
+    throw new Error('Must be logged in to mute users');
+  }
+
+  const userIdResult = await getUserIdByScreenName(username, auth);
+  if (!userIdResult.success) {
+    throw new Error(`Failed to get user ID: ${userIdResult.err.message}`);
+  }
+
+  const userId = userIdResult.value;
+  const headers = new Headers({
+    'Content-Type': 'application/x-www-form-urlencoded',
+    Referer: `https://twitter.com/${username}`,
+    'X-Twitter-Active-User': 'yes',
+    'X-Twitter-Auth-Type': 'OAuth2Session',
+    'X-Twitter-Client-Language': 'en',
+    Authorization: `Bearer ${bearerToken}`,
+  });
+
+  const url = `https://api.twitter.com/1.1/mutes/users/create.json?user_id=${userId}`;
+  await auth.installTo(headers, url);
+
+  const res = await auth.fetch(url, {
+    method: 'POST',
+    headers,
+    credentials: 'include',
+  });
+
+  if (!res.ok) {
+    throw new Error(`Failed to mute user: ${res.statusText}`);
+  }
+
+  const data = await res.json();
+  return new Response(JSON.stringify(data), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+export async function unmuteUser(
+  username: string,
+  auth: TwitterAuth,
+): Promise<Response> {
+  if (!(await auth.isLoggedIn())) {
+    throw new Error('Must be logged in to unmute users');
+  }
+
+  const userIdResult = await getUserIdByScreenName(username, auth);
+  if (!userIdResult.success) {
+    throw new Error(`Failed to get user ID: ${userIdResult.err.message}`);
+  }
+
+  const userId = userIdResult.value;
+  const headers = new Headers({
+    'Content-Type': 'application/x-www-form-urlencoded',
+    Referer: `https://twitter.com/${username}`,
+    'X-Twitter-Active-User': 'yes',
+    'X-Twitter-Auth-Type': 'OAuth2Session',
+    'X-Twitter-Client-Language': 'en',
+    Authorization: `Bearer ${bearerToken}`,
+  });
+
+  const url = `https://api.twitter.com/1.1/mutes/users/destroy.json?user_id=${userId}`;
+  await auth.installTo(headers, url);
+
+  const res = await auth.fetch(url, {
+    method: 'POST',
+    headers,
+    credentials: 'include',
+  });
+
+  if (!res.ok) {
+    throw new Error(`Failed to unmute user: ${res.statusText}`);
+  }
+
+  const data = await res.json();
+  return new Response(JSON.stringify(data), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
   });
 }

@@ -26,6 +26,8 @@ import {
   getFollowing,
   getFollowers,
   followUser,
+  muteUser,
+  unmuteUser,
 } from './relationships';
 import { QueryProfilesResponse, QueryTweetsResponse } from './timeline-v1';
 import { getTrends } from './trends';
@@ -156,6 +158,24 @@ export class Scraper {
    * @param screenName The Twitter screen name of the profile to fetch.
    * @returns The ID of the corresponding account.
    */
+  /**
+   * Mutes a Twitter user.
+   * @param username The Twitter username of the account to mute.
+   * @returns A promise that resolves to the response from Twitter.
+   */
+  public async muteUser(username: string): Promise<Response> {
+    return await muteUser(username, this.auth);
+  }
+
+  /**
+   * Unmutes a Twitter user.
+   * @param username The Twitter username of the account to unmute.
+   * @returns A promise that resolves to the response from Twitter.
+   */
+  public async unmuteUser(username: string): Promise<Response> {
+    return await unmuteUser(username, this.auth);
+  }
+
   public async getUserIdByScreenName(screenName: string): Promise<string> {
     const res = await getUserIdByScreenName(screenName, this.auth);
     return this.handleResponse(res);
@@ -371,7 +391,8 @@ export class Scraper {
       creator_subscriptions_quote_tweet_preview_enabled: false,
       freedom_of_speech_not_reach_fetch_enabled: true,
       standardized_nudges_misinfo: true,
-      tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled: true,
+      tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled:
+        true,
       rweb_video_timestamps_enabled: true,
       longform_notetweets_rich_text_read_enabled: true,
       longform_notetweets_inline_media_enabled: true,
