@@ -50,6 +50,7 @@ import {
   getTweetsWhere,
   getTweetsByUserId,
   getLikedTweets,
+  getBookmarksV2,
   TweetQuery,
   getTweet,
   fetchListTweets,
