@@ -161,7 +161,7 @@ export interface PollOption {
 export interface Tweet {
   bookmarkCount?: number;
   conversationId?: string;
-  hashtags: string[];
+  hashtags?: string[];
   html?: string;
   id?: string;
   inReplyToStatus?: Tweet;
