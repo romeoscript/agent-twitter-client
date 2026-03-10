@@ -43,6 +43,7 @@ import {
   getTweetWhere,
   getTweetsWhere,
   getTweetsByUserId,
+  getLikedTweets,
   TweetQuery,
   getTweet,
   fetchListTweets,
@@ -355,8 +356,7 @@ export class Scraper {
       creator_subscriptions_quote_tweet_preview_enabled: false,
       freedom_of_speech_not_reach_fetch_enabled: true,
       standardized_nudges_misinfo: true,
-      tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled:
-        true,
+      tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled: true,
       rweb_video_timestamps_enabled: true,
       longform_notetweets_rich_text_read_enabled: true,
       longform_notetweets_inline_media_enabled: true,
@@ -433,6 +433,19 @@ export class Scraper {
    */
   public getTweets(user: string, maxTweets = 200): AsyncGenerator<Tweet> {
     return getTweets(user, maxTweets, this.auth);
+  }
+
+  /**
+   * Fetches a user's liked tweets.
+   * @param user The user whose liked tweets should be returned.
+   * @param maxTweets The maximum number of tweets to return. Defaults to `200`.
+   * @returns An {@link AsyncGenerator} of tweets liked by the provided user.
+   */
+  public getLikedTweets(
+    user: string,
+    maxTweets = 200,
+  ): AsyncGenerator<Tweet, void> {
+    return getLikedTweets(user, maxTweets, this.auth);
   }
 
   /**
