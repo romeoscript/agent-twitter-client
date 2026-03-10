@@ -33,6 +33,8 @@ import {
   followUser,
   muteUser,
   unmuteUser,
+  followUserV2,
+  unfollowUserV2,
 } from './relationships';
 import { QueryProfilesResponse, QueryTweetsResponse } from './timeline-v1';
 import { getTrends } from './trends';
@@ -409,6 +411,24 @@ export class Scraper {
    */
   public getFollowersV2(userId: string, maxResults: number) {
     return getFollowersV2(userId, maxResults, this.auth);
+  }
+
+  /**
+   * Follow a user using the v2 API.
+   * @param userId The user ID to follow.
+   * @returns A promise that resolves to the follow response.
+   */
+  public followUserV2(userId: string) {
+    return followUserV2(userId, this.auth);
+  }
+
+  /**
+   * Unfollow a user using the v2 API.
+   * @param userId The user ID to unfollow.
+   * @returns A promise that resolves to the unfollow response.
+   */
+  public unfollowUserV2(userId: string) {
+    return unfollowUserV2(userId, this.auth);
   }
 
   /**
