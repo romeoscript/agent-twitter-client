@@ -869,12 +869,18 @@ export interface TweetResultByRestId {
   data?: TimelineEntryItemContentRaw;
 }
 
+const tweetCache = new Map<string, Tweet>();
+
 export async function getTweet(
   id: string,
   auth: TwitterAuth,
 ): Promise<Tweet | null> {
   const tweetDetailRequest = apiRequestFactory.createTweetDetailRequest();
   tweetDetailRequest.variables.focalTweetId = id;
+
+  if (tweetCache.has(id)) {
+    return tweetCache.get(id) ?? null;
+  }
 
   const res = await requestApi<ThreadedConversation>(
     tweetDetailRequest.toRequestUrl(),
@@ -890,7 +896,19 @@ export async function getTweet(
   }
 
   const tweets = parseThreadedConversation(res.value);
-  return tweets.find((tweet) => tweet.id === id) ?? null;
+  const foundTweet = tweets.find((tweet) => tweet.id === id) ?? null;
+
+  if (foundTweet) {
+    tweetCache.set(id, foundTweet);
+    if (tweetCache.size > 1000) {
+      const firstKey = tweetCache.keys().next().value;
+      if (firstKey) {
+        tweetCache.delete(firstKey);
+      }
+    }
+  }
+
+  return foundTweet;
 }
 
 export async function getTweetV2(
