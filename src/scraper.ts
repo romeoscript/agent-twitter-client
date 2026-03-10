@@ -25,6 +25,7 @@ import {
   fetchProfileFollowers,
   getFollowing,
   getFollowers,
+  getFollowersV2,
   followUser,
   muteUser,
   unmuteUser,
@@ -325,6 +326,16 @@ export class Scraper {
     maxProfiles: number,
   ): AsyncGenerator<Profile, void> {
     return getFollowers(userId, maxProfiles, this.auth);
+  }
+
+  /**
+   * Fetch a user's followers using the v2 API.
+   * @param userId The user ID whose followers should be returned.
+   * @param maxResults The maximum number of results to return.
+   * @returns A promise that resolves to a paginator of followers.
+   */
+  public getFollowersV2(userId: string, maxResults: number) {
+    return getFollowersV2(userId, maxResults, this.auth);
   }
 
   /**
