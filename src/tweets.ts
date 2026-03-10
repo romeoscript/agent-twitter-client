@@ -190,7 +190,7 @@ export interface Tweet {
   urls?: string[];
   userId?: string;
   username?: string;
-  videos: Video[];
+  videos?: Video[];
   views?: number;
   sensitiveContent?: boolean;
   poll?: PollV2 | null;
