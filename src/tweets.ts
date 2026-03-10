@@ -184,7 +184,7 @@ export interface Tweet {
   retweetedStatus?: Tweet;
   retweetedStatusId?: string;
   text?: string;
-  thread: Tweet[];
+  thread?: Tweet[];
   timeParsed?: Date;
   timestamp?: number;
   urls?: string[];
