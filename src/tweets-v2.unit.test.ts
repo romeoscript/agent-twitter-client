@@ -4,6 +4,7 @@ import {
   retweetTweetV2,
   likeTweetV2,
   getListTweetsV2,
+  getQuoteTweetsV2,
 } from './tweets';
 import { TwitterAuth } from './auth';
 
@@ -20,6 +21,7 @@ describe('TweetsV2 official', () => {
         retweet: jest.fn(),
         like: jest.fn(),
         listTweets: jest.fn(),
+        quotes: jest.fn(),
       },
     };
 
@@ -90,7 +92,24 @@ describe('TweetsV2 official', () => {
       'list123',
       expect.objectContaining({
         max_results: 20,
-        'tweet.fields': expect.arrayContaining([
+        tweetFields: expect.arrayContaining([
+          'referenced_tweets',
+          'created_at',
+        ]),
+      }),
+    );
+  });
+
+  test('getQuoteTweetsV2 should call v2 quotes with correct params', async () => {
+    mockV2Client.v2.quotes.mockResolvedValue({ data: [] });
+
+    await getQuoteTweetsV2('tweet123', 20, mockAuth);
+
+    expect(mockV2Client.v2.quotes).toHaveBeenCalledWith(
+      'tweet123',
+      expect.objectContaining({
+        max_results: 20,
+        tweetFields: expect.arrayContaining([
           'referenced_tweets',
           'created_at',
         ]),
