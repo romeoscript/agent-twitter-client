@@ -48,4 +48,4 @@ async function main() {
   // console.log('tweets', tweets);
 }
 
-main();
+main().catch(console.error);
