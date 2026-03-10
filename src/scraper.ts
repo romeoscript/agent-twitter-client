@@ -11,6 +11,8 @@ import {
   getProfile,
   getUserIdByScreenName,
   getScreenNameByUserId,
+  getUserV2,
+  getUserByUsernameV2,
   Profile,
 } from './profile';
 import {
@@ -433,6 +435,33 @@ export class Scraper {
    */
   public unfollowUserV2(userId: string) {
     return unfollowUserV2(userId, this.auth);
+  }
+
+  /**
+   * Mute a user using the v2 API.
+   * @param userId The user ID to mute.
+   * @returns A promise that resolves to the mute response.
+   */
+  public getScreenNameByUserId(userId: string) {
+    return getScreenNameByUserId(userId, this.auth);
+  }
+
+  /**
+   * Fetch a user's details using the v2 API by their user ID.
+   * @param userId The user ID to look up.
+   * @returns A promise that resolves to the user details.
+   */
+  public getUserV2(userId: string) {
+    return getUserV2(userId, this.auth);
+  }
+
+  /**
+   * Fetch a user's details using the v2 API by their username.
+   * @param username The username to look up.
+   * @returns A promise that resolves to the user details.
+   */
+  public getUserByUsernameV2(username: string) {
+    return getUserByUsernameV2(username, this.auth);
   }
 
   /**
