@@ -368,3 +368,40 @@ export async function getFollowingV2(
     ],
   });
 }
+
+/**
+ * Fetch users who liked a tweet using the v2 API.
+ * @param tweetId The tweet ID whose likers should be returned.
+ * @param maxResults The maximum number of results to return.
+ * @param auth The authentication object.
+ * @returns A promise that resolves to a paginator of users.
+ */
+export async function getTweetLikers(
+  tweetId: string,
+  maxResults: number,
+  auth: TwitterAuth,
+) {
+  const client = auth.getV2Client();
+  if (!client) {
+    throw new Error('Twitter v2 client is not initialized.');
+  }
+
+  return await client.v2.tweetLikedBy(tweetId, {
+    max_results: maxResults,
+    'user.fields': [
+      'created_at',
+      'description',
+      'entities',
+      'id',
+      'location',
+      'name',
+      'pinned_tweet_id',
+      'profile_image_url',
+      'protected',
+      'public_metrics',
+      'url',
+      'username',
+      'verified',
+    ],
+  });
+}
