@@ -123,6 +123,7 @@ export class TwitterGuestAuth implements TwitterAuth {
   protected guestToken?: string;
   protected guestCreatedAt?: Date;
   protected v2Client: TwitterApi | null;
+  private readonly headers: Headers;
 
   fetch: typeof fetch;
   readonly onResponse?: (response: Response, data: any) => void | Promise<void>;
@@ -136,6 +137,7 @@ export class TwitterGuestAuth implements TwitterAuth {
     this.bearerToken = bearerToken;
     this.jar = new CookieJar();
     this.v2Client = null;
+    this.headers = new Headers(options?.extraHeaders);
   }
 
   cookieJar(): CookieJar {
