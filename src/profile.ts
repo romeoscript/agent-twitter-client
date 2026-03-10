@@ -151,7 +151,10 @@ export async function getProfile(
     }) ?? '',
   );
 
-  params.set('fieldToggles', stringify({ withAuxiliaryUserLabels: false }) ?? '');
+  params.set(
+    'fieldToggles',
+    stringify({ withAuxiliaryUserLabels: false }) ?? '',
+  );
 
   const res = await requestApi<UserRaw>(
     `https://twitter.com/i/api/graphql/G3KGOASz96M-Qu0nwmGXNg/UserByScreenName?${params.toString()}`,
@@ -303,4 +306,58 @@ export async function getUserIdByScreenName(
     success: false,
     err: new Error('User ID is undefined.'),
   };
+}
+
+/**
+ * Fetch a user's details using the v2 API by their user ID.
+ * @param userId The user ID to look up.
+ * @param auth The authentication object.
+ * @returns A promise that resolves to the user details.
+ */
+export async function getUserV2(userId: string, auth: TwitterAuth) {
+  const client = auth.getV2Client();
+  if (!client) {
+    throw new Error('Twitter v2 client is not initialized.');
+  }
+
+  return await client.v2.user(userId, {
+    'user.fields': [
+      'description',
+      'created_at',
+      'location',
+      'pinned_tweet_id',
+      'profile_image_url',
+      'protected',
+      'public_metrics',
+      'url',
+      'verified',
+    ],
+  });
+}
+
+/**
+ * Fetch a user's details using the v2 API by their username.
+ * @param username The username to look up.
+ * @param auth The authentication object.
+ * @returns A promise that resolves to the user details.
+ */
+export async function getUserByUsernameV2(username: string, auth: TwitterAuth) {
+  const client = auth.getV2Client();
+  if (!client) {
+    throw new Error('Twitter v2 client is not initialized.');
+  }
+
+  return await client.v2.userByUsername(username, {
+    'user.fields': [
+      'description',
+      'created_at',
+      'location',
+      'pinned_tweet_id',
+      'profile_image_url',
+      'protected',
+      'public_metrics',
+      'url',
+      'verified',
+    ],
+  });
 }
