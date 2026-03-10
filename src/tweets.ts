@@ -24,6 +24,7 @@ import {
   TweetBookmarksTimelineV2Paginator,
   TweetUserTimelineV2Paginator,
   TweetV2ListTweetsPaginator,
+  QuotedTweetsTimelineV2Paginator,
   ApiV2Includes,
   MediaObjectV2,
   PlaceV2,
@@ -1690,21 +1691,5 @@ export async function getListTweetsV2(
 
   return await client.v2.listTweets(listId, {
     max_results: maxResults,
-    'tweet.fields': [
-      'referenced_tweets',
-      'created_at',
-      'description',
-      'entities',
-      'id',
-      'location',
-      'name',
-      'pinned_tweet_id',
-      'profile_image_url',
-      'protected',
-      'public_metrics',
-      'url',
-      'username',
-      'verified',
-    ] as any,
   });
 }
