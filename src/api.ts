@@ -194,7 +194,7 @@ export function addApiFeatures(o: object) {
     freedom_of_speech_not_reach_fetch_enabled: true,
     standardized_nudges_misinfo: true,
     longform_notetweets_rich_text_read_enabled: true,
-    responsive_web_enhance_cards_enabled: false,
+    responsive_web_enhance_cards_enabled: true,
     subscriptions_verification_info_enabled: true,
     subscriptions_verification_info_reason_enabled: true,
     subscriptions_verification_info_verified_since_enabled: true,

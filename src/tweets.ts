@@ -29,6 +29,8 @@ import {
   UserV2,
 } from 'twitter-api-v2';
 
+export { PollV2 };
+
 export const defaultOptions = {
   expansions: [
     'attachments.poll_ids',

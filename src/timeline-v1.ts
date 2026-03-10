@@ -153,6 +153,19 @@ export interface TimelineResultRaw {
   tweet?: TimelineResultRaw;
 }
 
+export interface LegacyCardBindingValueRaw {
+  key?: string;
+  value?: {
+    string_value?: string;
+    type?: string;
+  };
+}
+
+export interface LegacyCardRaw {
+  name?: string;
+  binding_values?: LegacyCardBindingValueRaw[];
+}
+
 export interface LegacyTweetRaw {
   bookmark_count?: number;
   conversation_id_str?: string;
@@ -184,6 +197,7 @@ export interface LegacyTweetRaw {
     state?: string;
     count?: string;
   };
+  card?: LegacyCardRaw;
 }
 
 export interface TimelineGlobalObjectsRaw {

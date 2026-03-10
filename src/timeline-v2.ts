@@ -1,13 +1,14 @@
 import { LegacyUserRaw } from './profile';
 import { parseMediaGroups, reconstructTweetHtml } from './timeline-tweet-util';
 import {
+  LegacyCardRaw,
   LegacyTweetRaw,
   ParseTweetResult,
   QueryTweetsResponse,
   SearchResultRaw,
   TimelineResultRaw,
 } from './timeline-v1';
-import { Tweet } from './tweets';
+import { PollV2, Tweet } from './tweets';
 import { isFieldDefined } from './type-util';
 
 export interface TimelineUserResultRaw {
@@ -103,6 +104,48 @@ export interface ThreadedConversation {
   };
 }
 
+export function parsePoll(card?: LegacyCardRaw): PollV2 | null {
+  if (card == null || card.name == null || !card.name.startsWith('poll')) {
+    return null;
+  }
+
+  const options: { label: string; position: number; votes: number }[] = [];
+  for (const binding of card.binding_values ?? []) {
+    if (binding.key?.startsWith('choice') && binding.key?.endsWith('_label')) {
+      const label = binding.value?.string_value;
+      if (label == null) continue;
+
+      const posStr = binding.key.split('choice')[1].split('_label')[0];
+      const pos = parseInt(posStr);
+      if (isNaN(pos)) continue;
+
+      const votesCount = card.binding_values?.find(
+        (v) => v.key === `choice${pos}_count`,
+      )?.value?.string_value;
+      const votes = parseInt(votesCount ?? '0');
+
+      options.push({
+        label,
+        position: pos,
+        votes: isNaN(votes) ? 0 : votes,
+      });
+    }
+  }
+
+  const endDatetime = card.binding_values?.find((v) => v.key === 'end_datetime')
+    ?.value?.string_value;
+  const votingStatus = card.binding_values?.find(
+    (v) => v.key === 'voting_status',
+  )?.value?.string_value;
+
+  return {
+    id: card.name,
+    end_datetime: endDatetime ?? '',
+    voting_status: votingStatus ?? '',
+    options,
+  };
+}
+
 export function parseLegacyTweet(
   user?: LegacyUserRaw,
   tweet?: LegacyTweetRaw,
@@ -141,6 +184,8 @@ export function parseLegacyTweet(
   const urls = tweet.entities?.urls ?? [];
   const { photos, videos, sensitiveContent } = parseMediaGroups(media);
 
+  const poll = parsePoll(tweet.card);
+
   const tw: Tweet = {
     bookmarkCount: tweet.bookmark_count,
     conversationId: tweet.conversation_id_str,
@@ -172,6 +217,7 @@ export function parseLegacyTweet(
     isRetweet: false,
     isPin: false,
     sensitiveContent: false,
+    poll,
   };
 
   if (tweet.created_at) {
