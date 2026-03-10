@@ -373,6 +373,38 @@ export async function unmuteUserV2(userId: string, auth: TwitterAuth) {
   return await client.v2.unmute(me.data.id, userId);
 }
 
+/**
+ * Block a user using the v2 API.
+ * @param userId The user ID to block.
+ * @param auth The authentication object.
+ * @returns A promise that resolves to the block response.
+ */
+export async function blockUserV2(userId: string, auth: TwitterAuth) {
+  const client = auth.getV2Client();
+  if (!client) {
+    throw new Error('Twitter v2 client is not initialized.');
+  }
+
+  const me = await client.v2.me();
+  return await client.v2.block(me.data.id, userId);
+}
+
+/**
+ * Unblock a user using the v2 API.
+ * @param userId The user ID to unblock.
+ * @param auth The authentication object.
+ * @returns A promise that resolves to the unblock response.
+ */
+export async function unblockUserV2(userId: string, auth: TwitterAuth) {
+  const client = auth.getV2Client();
+  if (!client) {
+    throw new Error('Twitter v2 client is not initialized.');
+  }
+
+  const me = await client.v2.me();
+  return await client.v2.unblock(me.data.id, userId);
+}
+
 export async function getFollowersV2(
   userId: string,
   maxResults: number,
