@@ -52,8 +52,9 @@ export async function requestApi<T>(
   method: 'GET' | 'POST' = 'GET',
   platform: PlatformExtensions = new Platform(),
   body?: any,
+  extraHeaders?: HeadersInit,
 ): Promise<RequestApiResult<T>> {
-  const headers = new Headers();
+  const headers = new Headers(extraHeaders);
   await auth.installTo(headers, url);
   await platform.randomizeCiphers();
 
@@ -205,7 +206,8 @@ export function addApiFeatures(o: object) {
     android_graphql_skip_api_media_color_palette: false,
     creator_subscriptions_subscription_count_enabled: false,
     blue_business_profile_image_shape_enabled: false,
-    unified_cards_ad_metadata_container_dynamic_card_content_query_enabled: false,
+    unified_cards_ad_metadata_container_dynamic_card_content_query_enabled:
+      false,
   };
 }
 
