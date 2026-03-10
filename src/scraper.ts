@@ -75,8 +75,6 @@ import {
   createCreateTweetRequest,
   PollData,
   createCreateTweetRequestV2,
-  getTweetV2,
-  getTweetsV2,
   defaultOptions,
   createQuoteTweetRequest,
   likeTweet,
