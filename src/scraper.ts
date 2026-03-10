@@ -65,6 +65,8 @@ import {
   likeTweetV2,
   getListTweetsV2,
   getQuoteTweetsV2,
+  getTweetV2,
+  getTweetsV2,
   TweetQuery,
   getTweet,
   fetchListTweets,
@@ -731,6 +733,24 @@ export class Scraper {
    */
   public getQuoteTweetsV2(tweetId: string, maxResults: number) {
     return getQuoteTweetsV2(tweetId, maxResults, this.auth);
+  }
+
+  /**
+   * Fetch a single tweet using the v2 API.
+   * @param id The tweet ID to fetch.
+   * @returns A promise that resolves to the tweet or null if not found.
+   */
+  public getTweetV2(id: string) {
+    return getTweetV2(id, this.auth);
+  }
+
+  /**
+   * Fetch multiple tweets using the v2 API.
+   * @param ids The tweet IDs to fetch.
+   * @returns A promise that resolves to an array of tweets.
+   */
+  public getTweetsV2(ids: string[]) {
+    return getTweetsV2(ids, this.auth);
   }
 
   /**
