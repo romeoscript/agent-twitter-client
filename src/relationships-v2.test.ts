@@ -7,6 +7,8 @@ import {
   unfollowUserV2,
   muteUserV2,
   unmuteUserV2,
+  blockUserV2,
+  unblockUserV2,
 } from './relationships';
 import { TwitterAuth } from './auth';
 
@@ -26,6 +28,8 @@ describe('Relationships v2', () => {
         unfollow: jest.fn(),
         mute: jest.fn(),
         unmute: jest.fn(),
+        block: jest.fn(),
+        unblock: jest.fn(),
       },
     };
 
@@ -128,6 +132,26 @@ describe('Relationships v2', () => {
 
     expect(mockV2Client.v2.me).toHaveBeenCalled();
     expect(mockV2Client.v2.unmute).toHaveBeenCalledWith('me123', 'user123');
+  });
+
+  test('blockUserV2 should call v2 me and block', async () => {
+    mockV2Client.v2.me.mockResolvedValue({ data: { id: 'me123' } });
+    mockV2Client.v2.block.mockResolvedValue({ data: { blocking: true } });
+
+    await blockUserV2('user123', mockAuth);
+
+    expect(mockV2Client.v2.me).toHaveBeenCalled();
+    expect(mockV2Client.v2.block).toHaveBeenCalledWith('me123', 'user123');
+  });
+
+  test('unblockUserV2 should call v2 me and unblock', async () => {
+    mockV2Client.v2.me.mockResolvedValue({ data: { id: 'me123' } });
+    mockV2Client.v2.unblock.mockResolvedValue({ data: { blocking: false } });
+
+    await unblockUserV2('user123', mockAuth);
+
+    expect(mockV2Client.v2.me).toHaveBeenCalled();
+    expect(mockV2Client.v2.unblock).toHaveBeenCalledWith('me123', 'user123');
   });
 
   test('should throw error if v2 client is not initialized', async () => {
