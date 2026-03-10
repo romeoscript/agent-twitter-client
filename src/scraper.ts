@@ -53,6 +53,8 @@ import {
   getLikedTweets,
   getBookmarksV2,
   getUserTweetsV2,
+  retweetTweetV2,
+  likeTweetV2,
   TweetQuery,
   getTweet,
   fetchListTweets,
@@ -603,6 +605,24 @@ export class Scraper {
    */
   public getUserTweetsV2(userId: string, maxResults: number) {
     return getUserTweetsV2(userId, maxResults, this.auth);
+  }
+
+  /**
+   * Retweet a tweet using the v2 API.
+   * @param tweetId The tweet ID to retweet.
+   * @returns A promise that resolves to the retweet response.
+   */
+  public retweetTweetV2(tweetId: string) {
+    return retweetTweetV2(tweetId, this.auth);
+  }
+
+  /**
+   * Like a tweet using the v2 API.
+   * @param tweetId The tweet ID to like.
+   * @returns A promise that resolves to the like response.
+   */
+  public likeTweetV2(tweetId: string) {
+    return likeTweetV2(tweetId, this.auth);
   }
 
   /**
