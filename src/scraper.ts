@@ -1028,9 +1028,9 @@ export class Scraper {
    */
   public async getAudioSpaceById(
     spaceId: string,
-    isMetatagsQuery: boolean = false,
-    withReplays: boolean = false,
-    withListeners: boolean = true,
+    isMetatagsQuery = false,
+    withReplays = false,
+    withListeners = true,
   ): Promise<AudioSpace> {
     return await fetchAudioSpaceById(
       {
