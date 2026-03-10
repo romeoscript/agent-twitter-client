@@ -1,4 +1,4 @@
-import { getBookmarksV2 } from './tweets';
+import { getBookmarksV2, getUserTweetsV2 } from './tweets';
 import { TwitterAuth } from './auth';
 
 describe('TweetsV2 official', () => {
@@ -9,6 +9,7 @@ describe('TweetsV2 official', () => {
     mockV2Client = {
       v2: {
         bookmarks: jest.fn(),
+        userTimeline: jest.fn(),
       },
     };
 
