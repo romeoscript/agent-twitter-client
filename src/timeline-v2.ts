@@ -275,7 +275,7 @@ export function parseLegacyTweet(
     tw.sensitiveContent = true;
   }
 
-  tw.html = reconstructTweetHtml(tweet, tw.photos, tw.videos);
+  tw.html = reconstructTweetHtml(tweet, tw.photos ?? [], tw.videos ?? []);
 
   return { success: true, tweet: tw };
 }
@@ -457,11 +457,14 @@ export function parseThreadedConversation(
     if (tweet.isSelfThread && tweet.conversationId === tweet.id) {
       for (const childTweet of tweets) {
         if (childTweet.isSelfThread && childTweet.id !== tweet.id) {
+          if (!tweet.thread) {
+            tweet.thread = [];
+          }
           tweet.thread.push(childTweet);
         }
       }
 
-      if (tweet.thread.length === 0) {
+      if (!tweet.thread || tweet.thread.length === 0) {
         tweet.isSelfThread = false;
       }
     }
