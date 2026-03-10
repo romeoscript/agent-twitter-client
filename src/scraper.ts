@@ -37,6 +37,8 @@ import {
   unfollowUserV2,
   muteUserV2,
   unmuteUserV2,
+  blockUserV2,
+  unblockUserV2,
 } from './relationships';
 import { QueryProfilesResponse, QueryTweetsResponse } from './timeline-v1';
 import { getTrends } from './trends';
@@ -449,6 +451,24 @@ export class Scraper {
    */
   public unmuteUserV2(userId: string) {
     return unmuteUserV2(userId, this.auth);
+  }
+
+  /**
+   * Block a user using the v2 API.
+   * @param userId The user ID to block.
+   * @returns A promise that resolves to the block response.
+   */
+  public blockUserV2(userId: string) {
+    return blockUserV2(userId, this.auth);
+  }
+
+  /**
+   * Unblock a user using the v2 API.
+   * @param userId The user ID to unblock.
+   * @returns A promise that resolves to the unblock response.
+   */
+  public unblockUserV2(userId: string) {
+    return unblockUserV2(userId, this.auth);
   }
 
   /**
