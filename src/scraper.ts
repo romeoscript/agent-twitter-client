@@ -554,6 +554,15 @@ export class Scraper {
   }
 
   /**
+   * Fetch bookmarked tweets using the v2 API.
+   * @param maxResults The maximum number of results to return.
+   * @returns A promise that resolves to a paginator of bookmarked tweets.
+   */
+  public getBookmarksV2(maxResults: number) {
+    return getBookmarksV2(maxResults, this.auth);
+  }
+
+  /**
    * Fetches tweets from a Twitter user.
    * @param user The user whose tweets should be returned.
    * @param maxTweets The maximum number of tweets to return. Defaults to `200`.
