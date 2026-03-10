@@ -406,3 +406,41 @@ export async function getTweetLikers(
     ],
   } as any);
 }
+
+/**
+ * Fetch users who retweeted a tweet using the v2 API.
+ * @param tweetId The tweet ID whose retweeters should be returned.
+ * @param maxResults The maximum number of results to return.
+ * @param auth The authentication object.
+ * @returns A promise that resolves to a paginator of users.
+ */
+export async function getTweetRetweeters(
+  tweetId: string,
+  maxResults: number,
+  auth: TwitterAuth,
+) {
+  const client = auth.getV2Client();
+  if (!client) {
+    throw new Error('Twitter v2 client is not initialized.');
+  }
+
+  return await client.v2.tweetRetweetedBy(tweetId, {
+    asPaginator: true,
+    max_results: maxResults,
+    'user.fields': [
+      'created_at',
+      'description',
+      'entities',
+      'id',
+      'location',
+      'name',
+      'pinned_tweet_id',
+      'profile_image_url',
+      'protected',
+      'public_metrics',
+      'url',
+      'username',
+      'verified',
+    ],
+  } as any);
+}
