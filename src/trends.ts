@@ -4,7 +4,7 @@ import { TimelineV1 } from './timeline-v1';
 
 export async function getTrends(
   auth: TwitterAuth,
-  count: number = 20,
+  count = 20,
 ): Promise<string[]> {
   const params = new URLSearchParams();
   addApiParams(params, false);
