@@ -68,7 +68,11 @@ import {
   createCreateLongTweetRequest,
   fetchListMembers,
 } from './tweets';
-import { parseTimelineTweetsV2, TimelineV2 } from './timeline-v2';
+import {
+  parseTimelineTweetsV2,
+  TimelineV2,
+  getHomeTimelineV2,
+} from './timeline-v2';
 import { ListMembersResponse } from './timeline-list';
 import { fetchHomeTimeline } from './timeline-home';
 import { fetchFollowingTimeline } from './timeline-following';
