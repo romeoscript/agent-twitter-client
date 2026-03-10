@@ -23,6 +23,7 @@ import { updateCookieJar } from './requests';
 import {
   TweetBookmarksTimelineV2Paginator,
   TweetUserTimelineV2Paginator,
+  TweetListTimelineV2Paginator,
   ApiV2Includes,
   MediaObjectV2,
   PlaceV2,
@@ -1668,4 +1669,42 @@ export async function likeTweetV2(tweetId: string, auth: TwitterAuth) {
 
   const me = await client.v2.me();
   return await client.v2.like(me.data.id, tweetId);
+}
+
+/**
+ * Fetch tweets from a list using the v2 API.
+ * @param listId The list ID whose tweets should be returned.
+ * @param maxResults The maximum number of results to return per request.
+ * @param auth The authentication object.
+ * @returns A promise that resolves to a paginator of tweets.
+ */
+export async function getListTweetsV2(
+  listId: string,
+  maxResults: number,
+  auth: TwitterAuth,
+): Promise<TweetListTimelineV2Paginator> {
+  const client = auth.getV2Client();
+  if (!client) {
+    throw new Error('Twitter v2 client is not initialized.');
+  }
+
+  return await client.v2.listTweets(listId, {
+    max_results: maxResults,
+    'tweet.fields': [
+      'referenced_tweets',
+      'created_at',
+      'description',
+      'entities',
+      'id',
+      'location',
+      'name',
+      'pinned_tweet_id',
+      'profile_image_url',
+      'protected',
+      'public_metrics',
+      'url',
+      'username',
+      'verified',
+    ] as any,
+  });
 }
