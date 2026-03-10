@@ -438,13 +438,10 @@ export class Scraper {
   }
 
   /**
-   * Mute a user using the v2 API.
-   * @param userId The user ID to mute.
-   * @returns A promise that resolves to the mute response.
+   * Fetch a user's details using the v2 API by their user ID.
+   * @param userId The user ID to look up.
+   * @returns A promise that resolves to the user details.
    */
-  public getScreenNameByUserId(userId: string) {
-    return getScreenNameByUserId(userId, this.auth);
-  }
 
   /**
    * Fetch a user's details using the v2 API by their user ID.
