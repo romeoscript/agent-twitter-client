@@ -751,6 +751,8 @@ export async function fetchListMembers(
 
   return parseListMembers(res.value);
 }
+
+export function getTweets(
   user: string,
   maxTweets: number,
   auth: TwitterAuth,
