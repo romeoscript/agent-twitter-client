@@ -416,7 +416,7 @@ function parseTimelineTweet(
     tw.sensitiveContent = true;
   }
 
-  tw.html = reconstructTweetHtml(tweet, tw.photos, tw.videos);
+  tw.html = reconstructTweetHtml(tweet, tw.photos ?? [], tw.videos ?? []);
 
   return { success: true, tweet: tw };
 }
