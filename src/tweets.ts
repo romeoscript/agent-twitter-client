@@ -1637,3 +1637,35 @@ export async function getUserTweetsV2(
     ] as any,
   });
 }
+
+/**
+ * Retweet a tweet using the v2 API.
+ * @param tweetId The tweet ID to retweet.
+ * @param auth The authentication object.
+ * @returns A promise that resolves to the retweet response.
+ */
+export async function retweetTweetV2(tweetId: string, auth: TwitterAuth) {
+  const client = auth.getV2Client();
+  if (!client) {
+    throw new Error('Twitter v2 client is not initialized.');
+  }
+
+  const me = await client.v2.me();
+  return await client.v2.retweet(me.data.id, tweetId);
+}
+
+/**
+ * Like a tweet using the v2 API.
+ * @param tweetId The tweet ID to like.
+ * @param auth The authentication object.
+ * @returns A promise that resolves to the like response.
+ */
+export async function likeTweetV2(tweetId: string, auth: TwitterAuth) {
+  const client = auth.getV2Client();
+  if (!client) {
+    throw new Error('Twitter v2 client is not initialized.');
+  }
+
+  const me = await client.v2.me();
+  return await client.v2.like(me.data.id, tweetId);
+}
