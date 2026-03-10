@@ -391,12 +391,18 @@ export function parseTweetV2ToV1(
   if (includes?.media?.length) {
     includes.media.forEach((media: MediaObjectV2) => {
       if (media.type === 'photo') {
+        if (!parsedTweet.photos) {
+          parsedTweet.photos = [];
+        }
         parsedTweet.photos.push({
           id: media.media_key,
           url: media.url ?? '',
           alt_text: media.alt_text ?? '',
         });
       } else if (media.type === 'video' || media.type === 'animated_gif') {
+        if (!parsedTweet.videos) {
+          parsedTweet.videos = [];
+        }
         parsedTweet.videos.push({
           id: media.media_key,
           preview: media.preview_image_url ?? '',
