@@ -575,6 +575,24 @@ export class Scraper {
   }
 
   /**
+   * Send a thread of tweets. Each string in the array will be sent as a separate tweet,
+   * replying to the previous one.
+   * @param texts The texts of the tweets in the thread.
+   * @param replyToTweetId Optional ID of a tweet to start the thread as a reply to.
+   * @returns A promise that resolves to an array of responses for each tweet in the thread.
+   */
+  async sendThread(texts: string[], replyToTweetId?: string) {
+    const responses: any[] = [];
+    let lastTweetId = replyToTweetId;
+
+    for (const text of texts) {
+      // Logic for sending each tweet will be added in the next commit
+    }
+
+    return responses;
+  }
+
+  /**
    * Fetches tweets and replies from a Twitter user.
    * @param user The user whose tweets should be returned.
    * @param maxTweets The maximum number of tweets to return. Defaults to `200`.
