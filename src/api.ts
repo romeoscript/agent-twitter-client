@@ -54,7 +54,14 @@ export async function requestApi<T>(
   body?: any,
   extraHeaders?: HeadersInit,
 ): Promise<RequestApiResult<T>> {
-  const headers = new Headers(extraHeaders);
+  const headers = new Headers(auth.extraHeaders());
+  if (extraHeaders) {
+    const extra = new Headers(extraHeaders);
+    extra.forEach((value, key) => {
+      headers.set(key, value);
+    });
+  }
+
   await auth.installTo(headers, url);
   await platform.randomizeCiphers();
 
