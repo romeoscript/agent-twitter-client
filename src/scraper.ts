@@ -113,7 +113,7 @@ export interface ScraperOptions {
   /**
    * Custom headers to send with every request.
    */
-  headers?: string[][] | Record<string, string> | Headers;
+  headers?: HeadersInit;
 }
 
 /**
