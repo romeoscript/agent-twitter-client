@@ -338,3 +338,33 @@ export async function getFollowersV2(
     ],
   });
 }
+
+export async function getFollowingV2(
+  userId: string,
+  maxResults: number,
+  auth: TwitterAuth,
+) {
+  const client = auth.getV2Client();
+  if (!client) {
+    throw new Error('Twitter v2 client is not initialized.');
+  }
+
+  return await client.v2.following(userId, {
+    max_results: maxResults,
+    'user.fields': [
+      'created_at',
+      'description',
+      'entities',
+      'id',
+      'location',
+      'name',
+      'pinned_tweet_id',
+      'profile_image_url',
+      'protected',
+      'public_metrics',
+      'url',
+      'username',
+      'verified',
+    ],
+  });
+}
