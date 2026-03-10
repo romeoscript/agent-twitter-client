@@ -548,3 +548,16 @@ export async function getHomeTimelineV2(
     ] as any,
   });
 }
+
+/**
+ * Fetch the latest timeline using the v2 API (Reverse Chronological).
+ * @param maxResults The maximum number of results to return per request.
+ * @param auth The authentication object.
+ * @returns A promise that resolves to a paginator of tweets.
+ */
+export async function getLatestTimelineV2(
+  maxResults: number,
+  auth: TwitterAuth,
+): Promise<TweetHomeTimelineV2Paginator> {
+  return getHomeTimelineV2(maxResults, auth);
+}
