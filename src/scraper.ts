@@ -64,6 +64,7 @@ import {
   retweetTweetV2,
   likeTweetV2,
   getListTweetsV2,
+  getQuoteTweetsV2,
   TweetQuery,
   getTweet,
   fetchListTweets,
@@ -720,6 +721,16 @@ export class Scraper {
    */
   public getListTweetsV2(listId: string, maxResults: number) {
     return getListTweetsV2(listId, maxResults, this.auth);
+  }
+
+  /**
+   * Fetch quote tweets of a specific tweet using the v2 API.
+   * @param tweetId The tweet ID whose quote tweets should be returned.
+   * @param maxResults The maximum number of results to return per request.
+   * @returns A promise that resolves to a paginator of quote tweets.
+   */
+  public getQuoteTweetsV2(tweetId: string, maxResults: number) {
+    return getQuoteTweetsV2(tweetId, maxResults, this.auth);
   }
 
   /**
