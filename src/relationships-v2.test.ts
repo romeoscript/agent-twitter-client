@@ -1,4 +1,8 @@
-import { getFollowersV2, getFollowingV2 } from './relationships';
+import {
+  getFollowersV2,
+  getFollowingV2,
+  getTweetLikers,
+} from './relationships';
 import { TwitterAuth } from './auth';
 
 describe('Relationships v2', () => {
@@ -10,6 +14,8 @@ describe('Relationships v2', () => {
       v2: {
         followers: jest.fn(),
         following: jest.fn(),
+        tweetLikedBy: jest.fn(),
+        tweetRetweetedBy: jest.fn(),
       },
     };
 
@@ -42,6 +48,20 @@ describe('Relationships v2', () => {
       expect.objectContaining({
         max_results: 10,
         'user.fields': expect.arrayContaining(['username', 'verified']),
+      }),
+    );
+  });
+
+  test('getTweetLikers should call v2 tweetLikedBy with correct params', async () => {
+    mockV2Client.v2.tweetLikedBy.mockResolvedValue({ data: [] });
+
+    await getTweetLikers('tweet123', 5, mockAuth);
+
+    expect(mockV2Client.v2.tweetLikedBy).toHaveBeenCalledWith(
+      'tweet123',
+      expect.objectContaining({
+        asPaginator: true,
+        max_results: 5,
       }),
     );
   });
