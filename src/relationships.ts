@@ -387,6 +387,7 @@ export async function getTweetLikers(
   }
 
   return await client.v2.tweetLikedBy(tweetId, {
+    asPaginator: true,
     max_results: maxResults,
     'user.fields': [
       'created_at',
@@ -403,5 +404,5 @@ export async function getTweetLikers(
       'username',
       'verified',
     ],
-  });
+  } as any);
 }
