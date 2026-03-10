@@ -586,7 +586,15 @@ export class Scraper {
     let lastTweetId = replyToTweetId;
 
     for (const text of texts) {
-      // Logic for sending each tweet will be added in the next commit
+      const res = await this.sendTweet(text, lastTweetId);
+      responses.push(res);
+
+      if (res.ok) {
+        const data = await res.json();
+        lastTweetId = data.rest_id || data.id_str;
+      } else {
+        break;
+      }
     }
 
     return responses;
