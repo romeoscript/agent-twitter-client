@@ -1718,3 +1718,26 @@ export async function getQuoteTweetsV2(
     ...defaultOptions,
   });
 }
+
+/**
+ * Fetch tweets liked by a specific user using the v2 API.
+ * @param userId The user ID whose liked tweets should be returned.
+ * @param maxResults The maximum number of results to return per request.
+ * @param auth The authentication object.
+ * @returns A promise that resolves to a paginator of liked tweets.
+ */
+export async function getUserLikedTweetsV2(
+  userId: string,
+  maxResults: number,
+  auth: TwitterAuth,
+): Promise<TweetV2UserLikedTweetsPaginator> {
+  const client = auth.getV2Client();
+  if (!client) {
+    throw new Error('Twitter v2 client is not initialized.');
+  }
+
+  return await client.v2.userLikedTweets(userId, {
+    max_results: maxResults,
+    ...defaultOptions,
+  });
+}
