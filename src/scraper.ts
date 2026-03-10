@@ -73,6 +73,7 @@ import {
   parseTimelineTweetsV2,
   TimelineV2,
   getHomeTimelineV2,
+  getLatestTimelineV2,
 } from './timeline-v2';
 import { ListMembersResponse } from './timeline-list';
 import { fetchHomeTimeline } from './timeline-home';

@@ -1,4 +1,4 @@
-import { getHomeTimelineV2 } from './timeline-v2';
+import { getHomeTimelineV2, getLatestTimelineV2 } from './timeline-v2';
 import { TwitterAuth } from './auth';
 
 describe('TimelineV2 official', () => {
