@@ -329,6 +329,15 @@ export class Scraper {
   }
 
   /**
+   * Fetch the home timeline using the v2 API.
+   * @param maxResults The maximum number of results to return per request.
+   * @returns A promise that resolves to a paginator of tweets.
+   */
+  public getHomeTimelineV2(maxResults: number) {
+    return getHomeTimelineV2(maxResults, this.auth);
+  }
+
+  /**
    * Fetch users who liked a tweet using the v2 API.
    * @param tweetId The tweet ID whose likers should be returned.
    * @param maxResults The maximum number of results to return.
