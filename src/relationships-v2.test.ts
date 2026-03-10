@@ -5,6 +5,8 @@ import {
   getTweetRetweeters,
   followUserV2,
   unfollowUserV2,
+  muteUserV2,
+  unmuteUserV2,
 } from './relationships';
 import { TwitterAuth } from './auth';
 
@@ -22,6 +24,8 @@ describe('Relationships v2', () => {
         me: jest.fn(),
         follow: jest.fn(),
         unfollow: jest.fn(),
+        mute: jest.fn(),
+        unmute: jest.fn(),
       },
     };
 
@@ -104,6 +108,26 @@ describe('Relationships v2', () => {
 
     expect(mockV2Client.v2.me).toHaveBeenCalled();
     expect(mockV2Client.v2.unfollow).toHaveBeenCalledWith('me123', 'user123');
+  });
+
+  test('muteUserV2 should call v2 me and mute', async () => {
+    mockV2Client.v2.me.mockResolvedValue({ data: { id: 'me123' } });
+    mockV2Client.v2.mute.mockResolvedValue({ data: { muting: true } });
+
+    await muteUserV2('user123', mockAuth);
+
+    expect(mockV2Client.v2.me).toHaveBeenCalled();
+    expect(mockV2Client.v2.mute).toHaveBeenCalledWith('me123', 'user123');
+  });
+
+  test('unmuteUserV2 should call v2 me and unmute', async () => {
+    mockV2Client.v2.me.mockResolvedValue({ data: { id: 'me123' } });
+    mockV2Client.v2.unmute.mockResolvedValue({ data: { muting: false } });
+
+    await unmuteUserV2('user123', mockAuth);
+
+    expect(mockV2Client.v2.me).toHaveBeenCalled();
+    expect(mockV2Client.v2.unmute).toHaveBeenCalledWith('me123', 'user123');
   });
 
   test('should throw error if v2 client is not initialized', async () => {
