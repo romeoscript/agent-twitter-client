@@ -17,8 +17,28 @@ export class ApiError extends Error {
         data = await response.text();
       } catch {}
     }
+    let message = `Response status: ${response.status}`;
+    const rateLimitLimit = response.headers.get('x-rate-limit-limit');
+    let rateLimitResetMs = undefined;
+    if (rateLimitLimit) {
+      const rateLimitRemaining = response.headers.get('x-rate-limit-remaining');
+      const rateLimitReset = response.headers.get('x-rate-limit-reset');
 
-    return new ApiError(response, data, `Response status: ${response.status}`);
+      message += ` (Rate Limit: ${rateLimitRemaining}/${rateLimitLimit}`;
+      if (rateLimitReset) {
+        const resetDate = new Date(parseInt(rateLimitReset) * 1000);
+        rateLimitResetMs = resetDate.getTime() - Date.now();
+        message += `, Resets at: ${resetDate.toISOString()})`;
+      } else {
+        message += `)`;
+      }
+    }
+
+    const err = new ApiError(response, data, message);
+    if (rateLimitResetMs !== undefined) {
+      (err as any).rateLimitResetMs = rateLimitResetMs;
+    }
+    return err;
   }
 }
 
