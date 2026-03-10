@@ -25,6 +25,7 @@ import {
   TweetUserTimelineV2Paginator,
   TweetV2ListTweetsPaginator,
   QuotedTweetsTimelineV2Paginator,
+  TweetV2UserLikedTweetsPaginator,
   ApiV2Includes,
   MediaObjectV2,
   PlaceV2,
@@ -1691,5 +1692,29 @@ export async function getListTweetsV2(
 
   return await client.v2.listTweets(listId, {
     max_results: maxResults,
+    ...defaultOptions,
+  });
+}
+
+/**
+ * Fetch quote tweets of a specific tweet using the v2 API.
+ * @param tweetId The tweet ID whose quote tweets should be returned.
+ * @param maxResults The maximum number of results to return per request.
+ * @param auth The authentication object.
+ * @returns A promise that resolves to a paginator of quote tweets.
+ */
+export async function getQuoteTweetsV2(
+  tweetId: string,
+  maxResults: number,
+  auth: TwitterAuth,
+): Promise<QuotedTweetsTimelineV2Paginator> {
+  const client = auth.getV2Client();
+  if (!client) {
+    throw new Error('Twitter v2 client is not initialized.');
+  }
+
+  return await client.v2.quotes(tweetId, {
+    max_results: maxResults,
+    ...defaultOptions,
   });
 }
