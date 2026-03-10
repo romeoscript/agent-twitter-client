@@ -343,6 +343,15 @@ export class Scraper {
   }
 
   /**
+   * Fetch the latest timeline using the v2 API (Reverse Chronological).
+   * @param maxResults The maximum number of results to return per request.
+   * @returns A promise that resolves to a paginator of tweets.
+   */
+  public getLatestTimelineV2(maxResults: number) {
+    return getLatestTimelineV2(maxResults, this.auth);
+  }
+
+  /**
    * Fetch users who liked a tweet using the v2 API.
    * @param tweetId The tweet ID whose likers should be returned.
    * @param maxResults The maximum number of results to return.
