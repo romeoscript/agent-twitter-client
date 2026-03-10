@@ -254,6 +254,11 @@ export interface TimelineDataRawPinEntry {
         tweet?: TimelineDataRawEntity;
       };
     };
+    timelineModule?: {
+      items?: {
+        item?: TimelineDataRawModuleItem;
+      }[];
+    };
   };
 }
 

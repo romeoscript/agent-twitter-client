@@ -36,8 +36,9 @@ export async function getTrends(auth: TwitterAuth): Promise<string[]> {
       }
     }
 
-    if (instruction.pinEntry?.entry?.content?.timelineModule?.items) {
-      const items = instruction.pinEntry.entry.content.timelineModule.items;
+    const pinEntry = instruction.pinEntry?.entry;
+    if (pinEntry?.content?.timelineModule?.items) {
+      const items = pinEntry.content.timelineModule.items;
       for (const item of items) {
         const trend =
           item.item?.clientEventInfo?.details?.guideDetails
