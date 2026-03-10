@@ -5,6 +5,8 @@ import {
   likeTweetV2,
   getListTweetsV2,
   getQuoteTweetsV2,
+  getTweetV2,
+  getTweetsV2,
 } from './tweets';
 import { TwitterAuth } from './auth';
 
@@ -22,6 +24,8 @@ describe('TweetsV2 official', () => {
         like: jest.fn(),
         listTweets: jest.fn(),
         quotes: jest.fn(),
+        singleTweet: jest.fn(),
+        tweets: jest.fn(),
       },
     };
 
@@ -113,6 +117,36 @@ describe('TweetsV2 official', () => {
           'referenced_tweets',
           'created_at',
         ]),
+      }),
+    );
+  });
+
+  test('getTweetV2 should call v2 singleTweet with correct params', async () => {
+    mockV2Client.v2.singleTweet.mockResolvedValue({
+      data: { id: 'tweet123', text: 'hello' },
+    });
+
+    await getTweetV2('tweet123', mockAuth);
+
+    expect(mockV2Client.v2.singleTweet).toHaveBeenCalledWith(
+      'tweet123',
+      expect.objectContaining({
+        'tweet.fields': expect.arrayContaining(['attachments', 'author_id']),
+      }),
+    );
+  });
+
+  test('getTweetsV2 should call v2 tweets with correct params', async () => {
+    mockV2Client.v2.tweets.mockResolvedValue({
+      data: [{ id: 'tweet123', text: 'hello' }],
+    });
+
+    await getTweetsV2(['tweet123'], mockAuth);
+
+    expect(mockV2Client.v2.tweets).toHaveBeenCalledWith(
+      ['tweet123'],
+      expect.objectContaining({
+        'tweet.fields': expect.arrayContaining(['attachments', 'author_id']),
       }),
     );
   });
