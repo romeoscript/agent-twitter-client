@@ -109,6 +109,11 @@ export interface ScraperOptions {
    * This can be used to access the raw JSON response from Twitter.
    */
   onResponse?: (response: Response, data: any) => void | Promise<void>;
+
+  /**
+   * Custom headers to send with every request.
+   */
+  headers?: string[][] | Record<string, string> | Headers;
 }
 
 /**
@@ -119,6 +124,7 @@ export class Scraper {
   private auth!: TwitterAuth;
   private authTrends!: TwitterAuth;
   private token: string;
+  private headers: Headers;
 
   /**
    * Creates a new Scraper object.
@@ -127,6 +133,7 @@ export class Scraper {
    */
   constructor(private readonly options?: Partial<ScraperOptions>) {
     this.token = bearerToken;
+    this.headers = new Headers(options?.headers);
     this.useGuestAuth();
   }
 
@@ -272,6 +279,14 @@ export class Scraper {
     cursor?: string,
   ): Promise<QueryTweetsResponse> {
     return fetchListTweets(listId, maxTweets, cursor, this.auth);
+  }
+
+  public fetchListMembers(
+    listId: string,
+    maxMembers = 200,
+    cursor?: string,
+  ): Promise<ListMembersResponse> {
+    return fetchListMembers(listId, maxMembers, cursor, this.auth);
   }
 
   /**
