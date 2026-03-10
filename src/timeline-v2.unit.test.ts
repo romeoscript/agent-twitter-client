@@ -54,6 +54,23 @@ describe('TimelineV2 official', () => {
     );
   });
 
+  test('getUserMentionsV2 should call v2 userMentionTimeline with correct params', async () => {
+    mockV2Client.v2.userMentionTimeline.mockResolvedValue({ data: [] });
+
+    await getUserMentionsV2('user123', 15, mockAuth);
+
+    expect(mockV2Client.v2.userMentionTimeline).toHaveBeenCalledWith(
+      'user123',
+      expect.objectContaining({
+        max_results: 15,
+        'tweet.fields': expect.arrayContaining([
+          'referenced_tweets',
+          'created_at',
+        ]),
+      }),
+    );
+  });
+
   test('should throw error if v2 client is not initialized', async () => {
     mockAuth.getV2Client.mockReturnValue(null);
 
