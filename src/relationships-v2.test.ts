@@ -2,6 +2,7 @@ import {
   getFollowersV2,
   getFollowingV2,
   getTweetLikers,
+  getTweetRetweeters,
 } from './relationships';
 import { TwitterAuth } from './auth';
 
@@ -58,6 +59,20 @@ describe('Relationships v2', () => {
     await getTweetLikers('tweet123', 5, mockAuth);
 
     expect(mockV2Client.v2.tweetLikedBy).toHaveBeenCalledWith(
+      'tweet123',
+      expect.objectContaining({
+        asPaginator: true,
+        max_results: 5,
+      }),
+    );
+  });
+
+  test('getTweetRetweeters should call v2 tweetRetweetedBy with correct params', async () => {
+    mockV2Client.v2.tweetRetweetedBy.mockResolvedValue({ data: [] });
+
+    await getTweetRetweeters('tweet123', 5, mockAuth);
+
+    expect(mockV2Client.v2.tweetRetweetedBy).toHaveBeenCalledWith(
       'tweet123',
       expect.objectContaining({
         asPaginator: true,
