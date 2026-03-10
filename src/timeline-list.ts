@@ -1,6 +1,29 @@
 import { QueryTweetsResponse } from './timeline-v1';
 import { parseAndPush, TimelineEntryRaw } from './timeline-v2';
+import { Profile } from './profile';
 import { Tweet } from './tweets';
+
+export interface ListMembersTimeline {
+  data?: {
+    list?: {
+      members_timeline?: {
+        timeline?: {
+          instructions?: {
+            entries?: TimelineEntryRaw[];
+            entry?: TimelineEntryRaw;
+            type?: string;
+          }[];
+        };
+      };
+    };
+  };
+}
+
+export interface ListMembersResponse {
+  users: Profile[];
+  next?: string;
+  previous?: string;
+}
 
 export interface ListTimeline {
   data?: {
