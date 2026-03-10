@@ -23,7 +23,7 @@ import { updateCookieJar } from './requests';
 import {
   TweetBookmarksTimelineV2Paginator,
   TweetUserTimelineV2Paginator,
-  TweetListTimelineV2Paginator,
+  TweetV2ListTweetsPaginator,
   ApiV2Includes,
   MediaObjectV2,
   PlaceV2,
@@ -1682,7 +1682,7 @@ export async function getListTweetsV2(
   listId: string,
   maxResults: number,
   auth: TwitterAuth,
-): Promise<TweetListTimelineV2Paginator> {
+): Promise<TweetV2ListTweetsPaginator> {
   const client = auth.getV2Client();
   if (!client) {
     throw new Error('Twitter v2 client is not initialized.');
