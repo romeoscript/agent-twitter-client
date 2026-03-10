@@ -590,8 +590,19 @@ export class Scraper {
       responses.push(res);
 
       if (res.ok) {
-        const data = await res.json();
-        lastTweetId = data.rest_id || data.id_str;
+        // Clone the response to avoid consuming the body
+        const resClone = res.clone();
+        const data = await resClone.json();
+
+        // Robust ID extraction for both v1 and GraphQL responses
+        lastTweetId =
+          data?.rest_id ||
+          data?.data?.create_tweet?.tweet_results?.result?.rest_id ||
+          data?.id_str;
+
+        if (!lastTweetId) {
+          break;
+        }
       } else {
         break;
       }
