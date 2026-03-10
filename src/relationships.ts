@@ -309,6 +309,38 @@ export async function unmuteUser(
   });
 }
 
+/**
+ * Follow a user using the v2 API.
+ * @param userId The user ID to follow.
+ * @param auth The authentication object.
+ * @returns A promise that resolves to the follow response.
+ */
+export async function followUserV2(userId: string, auth: TwitterAuth) {
+  const client = auth.getV2Client();
+  if (!client) {
+    throw new Error('Twitter v2 client is not initialized.');
+  }
+
+  const me = await client.v2.me();
+  return await client.v2.follow(me.data.id, userId);
+}
+
+/**
+ * Unfollow a user using the v2 API.
+ * @param userId The user ID to unfollow.
+ * @param auth The authentication object.
+ * @returns A promise that resolves to the unfollow response.
+ */
+export async function unfollowUserV2(userId: string, auth: TwitterAuth) {
+  const client = auth.getV2Client();
+  if (!client) {
+    throw new Error('Twitter v2 client is not initialized.');
+  }
+
+  const me = await client.v2.me();
+  return await client.v2.unfollow(me.data.id, userId);
+}
+
 export async function getFollowersV2(
   userId: string,
   maxResults: number,
