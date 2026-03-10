@@ -73,5 +73,9 @@
       "eslint --cache --fix",
       "prettier --write"
     ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/romeoscript/agent-twitter-client.git"
   }
 }

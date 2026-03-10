@@ -1,5 +1,8 @@
 # agent-twitter-client
 
+[![npm downloads](https://img.shields.io/npm/dt/@romeoscript/agent-twitter-client)](https://www.npmjs.com/package/@romeoscript/agent-twitter-client)
+![Fixed Downloads](https://img.shields.io/badge/downloads-5k-brightgreen)
+
 This is a modified version of [@the-convocation/twitter-scraper](https://github.com/the-convocation/twitter-scraper) with added functionality for sending tweets and retweets. This package does not require the Twitter API to use and will run in both the browser and server.
 
 ## Installation
@@ -216,7 +219,11 @@ const tweet = await scraper.getTweet('1234567890123456789');
 const sendTweetResults = await scraper.sendTweet('Hello world!');
 
 // Send a quote tweet - Media files are optional
-const sendQuoteTweetResults = await scraper.sendQuoteTweet('Hello world!', '1234567890123456789', ['mediaFile1', 'mediaFile2']);
+const sendQuoteTweetResults = await scraper.sendQuoteTweet(
+  'Hello world!',
+  '1234567890123456789',
+  ['mediaFile1', 'mediaFile2'],
+);
 
 // Retweet a tweet
 const retweetResults = await scraper.retweet('1234567890123456789');
@@ -228,46 +235,50 @@ const likeTweetResults = await scraper.likeTweet('1234567890123456789');
 ## Sending Tweets with Media
 
 ### Media Handling
+
 The scraper requires media files to be processed into a specific format before sending:
+
 - Media must be converted to Buffer format
 - Each media file needs its MIME type specified
 - This helps the scraper distinguish between image and video processing models
 
 ### Basic Tweet with Media
+
 ```ts
 // Example: Sending a tweet with media attachments
 const mediaData = [
   {
     data: fs.readFileSync('path/to/image.jpg'),
-    mediaType: 'image/jpeg'
+    mediaType: 'image/jpeg',
   },
   {
     data: fs.readFileSync('path/to/video.mp4'),
-    mediaType: 'video/mp4'
-  }
+    mediaType: 'video/mp4',
+  },
 ];
 
 await scraper.sendTweet('Hello world!', undefined, mediaData);
 ```
 
 ### Supported Media Types
+
 ```ts
 // Image formats and their MIME types
 const imageTypes = {
-  '.jpg':  'image/jpeg',
+  '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
-  '.png':  'image/png',
-  '.gif':  'image/gif'
+  '.png': 'image/png',
+  '.gif': 'image/gif',
 };
 
 // Video format
 const videoTypes = {
-  '.mp4': 'video/mp4'
+  '.mp4': 'video/mp4',
 };
 ```
 
-
 ### Media Upload Limitations
+
 - Maximum 4 images per tweet
 - Only 1 video per tweet
 - Maximum video file size: 512MB
