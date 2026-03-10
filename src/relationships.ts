@@ -8,7 +8,6 @@ import {
   RelationshipTimeline,
   parseRelationshipTimeline,
 } from './timeline-relationship';
-import { UserV2Result, UserV2TimelinePaginator } from 'twitter-api-v2';
 import stringify from 'json-stable-stringify';
 
 export function getFollowing(
