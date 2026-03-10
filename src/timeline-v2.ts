@@ -11,7 +11,10 @@ import {
 import { PollV2, Tweet } from './tweets';
 import { isFieldDefined } from './type-util';
 import { TwitterAuth } from './auth';
-import { TweetHomeTimelineV2Paginator } from 'twitter-api-v2';
+import {
+  TweetHomeTimelineV2Paginator,
+  TweetUserMentionTimelineV2Paginator,
+} from 'twitter-api-v2';
 
 export interface TimelineUserResultRaw {
   rest_id?: string;
@@ -560,4 +563,42 @@ export async function getLatestTimelineV2(
   auth: TwitterAuth,
 ): Promise<TweetHomeTimelineV2Paginator> {
   return getHomeTimelineV2(maxResults, auth);
+}
+
+/**
+ * Fetch the mentions timeline using the v2 API.
+ * @param userId The user ID whose mentions should be returned.
+ * @param maxResults The maximum number of results to return per request.
+ * @param auth The authentication object.
+ * @returns A promise that resolves to a paginator of tweets.
+ */
+export async function getUserMentionsV2(
+  userId: string,
+  maxResults: number,
+  auth: TwitterAuth,
+): Promise<TweetUserMentionTimelineV2Paginator> {
+  const client = auth.getV2Client();
+  if (!client) {
+    throw new Error('Twitter v2 client is not initialized.');
+  }
+
+  return await client.v2.userMentionTimeline(userId, {
+    max_results: maxResults,
+    'tweet.fields': [
+      'referenced_tweets',
+      'created_at',
+      'description',
+      'entities',
+      'id',
+      'location',
+      'name',
+      'pinned_tweet_id',
+      'profile_image_url',
+      'protected',
+      'public_metrics',
+      'url',
+      'username',
+      'verified',
+    ] as any,
+  });
 }
