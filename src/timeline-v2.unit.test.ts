@@ -1,4 +1,8 @@
-import { getHomeTimelineV2, getLatestTimelineV2 } from './timeline-v2';
+import {
+  getHomeTimelineV2,
+  getLatestTimelineV2,
+  getUserMentionsV2,
+} from './timeline-v2';
 import { TwitterAuth } from './auth';
 
 describe('TimelineV2 official', () => {
@@ -9,6 +13,7 @@ describe('TimelineV2 official', () => {
     mockV2Client = {
       v2: {
         homeTimeline: jest.fn(),
+        userMentionTimeline: jest.fn(),
       },
     };
 
