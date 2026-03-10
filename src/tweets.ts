@@ -187,7 +187,7 @@ export interface Tweet {
   thread: Tweet[];
   timeParsed?: Date;
   timestamp?: number;
-  urls: string[];
+  urls?: string[];
   userId?: string;
   username?: string;
   videos: Video[];
