@@ -7,6 +7,7 @@ import {
   getQuoteTweetsV2,
   getTweetV2,
   getTweetsV2,
+  getUserLikedTweetsV2,
 } from './tweets';
 import { TwitterAuth } from './auth';
 
@@ -26,6 +27,7 @@ describe('TweetsV2 official', () => {
         quotes: jest.fn(),
         singleTweet: jest.fn(),
         tweets: jest.fn(),
+        userLikedTweets: jest.fn(),
       },
     };
 
@@ -147,6 +149,23 @@ describe('TweetsV2 official', () => {
       ['tweet123'],
       expect.objectContaining({
         'tweet.fields': expect.arrayContaining(['attachments', 'author_id']),
+      }),
+    );
+  });
+
+  test('getUserLikedTweetsV2 should call v2 userLikedTweets with correct params', async () => {
+    mockV2Client.v2.userLikedTweets.mockResolvedValue({ data: [] });
+
+    await getUserLikedTweetsV2('user123', 20, mockAuth);
+
+    expect(mockV2Client.v2.userLikedTweets).toHaveBeenCalledWith(
+      'user123',
+      expect.objectContaining({
+        max_results: 20,
+        tweetFields: expect.arrayContaining([
+          'referenced_tweets',
+          'created_at',
+        ]),
       }),
     );
   });
