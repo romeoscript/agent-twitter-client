@@ -12,7 +12,13 @@ import {
 } from './timeline-v2';
 import { getTweetTimeline } from './timeline-async';
 import { apiRequestFactory } from './api-data';
-import { ListTimeline, parseListTimelineTweets } from './timeline-list';
+import {
+  ListMembersResponse,
+  ListMembersTimeline,
+  ListTimeline,
+  parseListMembers,
+  parseListTimelineTweets,
+} from './timeline-list';
 import { updateCookieJar } from './requests';
 import {
   ApiV2Includes,
@@ -716,7 +722,35 @@ export async function fetchListTweets(
   return parseListTimelineTweets(res.value);
 }
 
-export function getTweets(
+export async function fetchListMembers(
+  listId: string,
+  maxMembers: number,
+  cursor: string | undefined,
+  auth: TwitterAuth,
+): Promise<ListMembersResponse> {
+  if (maxMembers > 200) {
+    maxMembers = 200;
+  }
+
+  const listMembersRequest = apiRequestFactory.createListMembersRequest();
+  listMembersRequest.variables.listId = listId;
+  listMembersRequest.variables.count = maxMembers;
+
+  if (cursor != null && cursor != '') {
+    listMembersRequest.variables['cursor'] = cursor;
+  }
+
+  const res = await requestApi<ListMembersTimeline>(
+    listMembersRequest.toRequestUrl(),
+    auth,
+  );
+
+  if (!res.success) {
+    throw res.err;
+  }
+
+  return parseListMembers(res.value);
+}
   user: string,
   maxTweets: number,
   auth: TwitterAuth,
