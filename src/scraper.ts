@@ -302,14 +302,6 @@ export class Scraper {
   }
 
   /**
-   * Fetch current trending topics
-   * @returns A promise that resolves to an array of trending topics.
-   */
-  public getTrends(): Promise<string[]> {
-    return getTrends(this.auth);
-  }
-
-  /**
    * Fetch the profiles a user is following
    * @param userId The user whose following should be returned
    * @param maxProfiles The maximum number of profiles to return.
