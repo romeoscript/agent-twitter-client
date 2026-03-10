@@ -34,6 +34,23 @@ describe('TweetsV2 official', () => {
     );
   });
 
+  test('getUserTweetsV2 should call v2 userTimeline with correct params', async () => {
+    mockV2Client.v2.userTimeline.mockResolvedValue({ data: [] });
+
+    await getUserTweetsV2('user123', 20, mockAuth);
+
+    expect(mockV2Client.v2.userTimeline).toHaveBeenCalledWith(
+      'user123',
+      expect.objectContaining({
+        max_results: 20,
+        'tweet.fields': expect.arrayContaining([
+          'referenced_tweets',
+          'created_at',
+        ]),
+      }),
+    );
+  });
+
   test('should throw error if v2 client is not initialized', async () => {
     mockAuth.getV2Client.mockReturnValue(null);
 
