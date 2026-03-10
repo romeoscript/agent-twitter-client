@@ -65,11 +65,7 @@ import {
   fetchListMembers,
 } from './tweets';
 import { parseTimelineTweetsV2, TimelineV2 } from './timeline-v2';
-import {
-  ListMembersResponse,
-  ListTimeline,
-  parseListTimelineTweets,
-} from './timeline-list';
+import { ListMembersResponse } from './timeline-list';
 import { fetchHomeTimeline } from './timeline-home';
 import { fetchFollowingTimeline } from './timeline-following';
 import {
@@ -147,13 +143,29 @@ export class Scraper {
   }
 
   /**
+   * Sets the options for this scraper.
+   * @param options The options to set.
+   */
+  public setOptions(options: Partial<ScraperOptions>) {
+    if (options.headers) {
+      this.headers = new Headers(options.headers);
+      this.auth.setExtraHeaders(this.headers);
+      this.authTrends.setExtraHeaders(this.headers);
+    }
+  }
+
+  /**
    * Initializes auth properties using a guest token.
    * Used when creating a new instance of this class, and when logging out.
    * @internal
    */
   private useGuestAuth() {
-    this.auth = new TwitterGuestAuth(this.token, this.getAuthOptions());
-    this.authTrends = new TwitterGuestAuth(this.token, this.getAuthOptions());
+    const options = {
+      ...this.getAuthOptions(),
+      extraHeaders: this.headers,
+    };
+    this.auth = new TwitterGuestAuth(this.token, options);
+    this.authTrends = new TwitterGuestAuth(this.token, options);
   }
 
   /**
