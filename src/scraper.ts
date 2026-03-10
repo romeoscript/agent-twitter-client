@@ -443,12 +443,6 @@ export class Scraper {
    * @param userId The user ID to look up.
    * @returns A promise that resolves to the user details.
    */
-
-  /**
-   * Fetch a user's details using the v2 API by their user ID.
-   * @param userId The user ID to look up.
-   * @returns A promise that resolves to the user details.
-   */
   public getUserV2(userId: string) {
     return getUserV2(userId, this.auth);
   }
@@ -734,24 +728,6 @@ export class Scraper {
   }
 
   /**
-   * Fetch a single tweet using the v2 API.
-   * @param id The tweet ID to fetch.
-   * @returns A promise that resolves to the tweet or null if not found.
-   */
-  public getTweetV2(id: string) {
-    return getTweetV2(id, this.auth);
-  }
-
-  /**
-   * Fetch multiple tweets using the v2 API.
-   * @param ids The tweet IDs to fetch.
-   * @returns A promise that resolves to an array of tweets.
-   */
-  public getTweetsV2(ids: string[]) {
-    return getTweetsV2(ids, this.auth);
-  }
-
-  /**
    * Fetches tweets from a Twitter user.
    * @param user The user whose tweets should be returned.
    * @param maxTweets The maximum number of tweets to return. Defaults to `200`.
@@ -1014,7 +990,7 @@ export class Scraper {
    * @param {string[]} [options.placeFields] - Array of place fields to include, if the tweet includes location data, e.g., 'full_name', 'country'.
    * @returns {Promise<TweetV2 | null>} - The tweet data, including requested expansions and fields.
    */
-  async getTweetV2(
+  public async getTweetV2(
     id: string,
     options: {
       expansions?: TTweetv2Expansion[];
@@ -1042,7 +1018,7 @@ export class Scraper {
    * @param {string[]} [options.placeFields] - Array of place fields to include, if tweets contain location data, e.g., 'full_name', 'country'.
    * @returns {Promise<TweetV2[]> } - Array of tweet data, including requested expansions and fields.
    */
-  async getTweetsV2(
+  public async getTweetsV2(
     ids: string[],
     options: {
       expansions?: TTweetv2Expansion[];
