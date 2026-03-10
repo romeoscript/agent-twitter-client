@@ -2,11 +2,14 @@ import { addApiParams, requestApi } from './api';
 import { TwitterAuth } from './auth';
 import { TimelineV1 } from './timeline-v1';
 
-export async function getTrends(auth: TwitterAuth): Promise<string[]> {
+export async function getTrends(
+  auth: TwitterAuth,
+  count: number = 20,
+): Promise<string[]> {
   const params = new URLSearchParams();
   addApiParams(params, false);
 
-  params.set('count', '20');
+  params.set('count', count.toString());
   params.set('candidate_source', 'trends');
   params.set('include_page_configuration', 'false');
   params.set('entity_tokens', 'false');

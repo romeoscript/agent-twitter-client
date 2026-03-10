@@ -488,10 +488,11 @@ export class Scraper {
 
   /**
    * Fetches the current trends from Twitter.
+   * @param count The number of trends to fetch. Defaults to `20`.
    * @returns The current list of trends.
    */
-  public getTrends(): Promise<string[]> {
-    return getTrends(this.authTrends);
+  public getTrends(count = 20): Promise<string[]> {
+    return getTrends(this.authTrends, count);
   }
 
   /**
