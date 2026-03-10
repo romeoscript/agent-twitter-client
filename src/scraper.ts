@@ -19,6 +19,7 @@ import {
   SearchMode,
   searchProfiles,
   searchTweets,
+  searchTweetsV2,
 } from './search';
 import {
   fetchProfileFollowing,
@@ -581,6 +582,16 @@ export class Scraper {
    */
   public getBookmarksV2(maxResults: number) {
     return getBookmarksV2(maxResults, this.auth);
+  }
+
+  /**
+   * Search for tweets using the v2 API.
+   * @param query The search query.
+   * @param maxResults The maximum number of results to return per request.
+   * @returns A promise that resolves to a paginator of tweets.
+   */
+  public searchTweetsV2(query: string, maxResults: number) {
+    return searchTweetsV2(query, maxResults, this.auth);
   }
 
   /**
