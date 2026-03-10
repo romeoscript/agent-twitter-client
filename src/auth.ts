@@ -8,10 +8,16 @@ import { Profile } from './profile';
 export interface TwitterAuthOptions {
   fetch: typeof fetch;
   transform: Partial<FetchTransformOptions>;
+  onResponse?: (response: Response, data: any) => void | Promise<void>;
 }
 
 export interface TwitterAuth {
   fetch: typeof fetch;
+
+  /**
+   * Optional callback to be called when a request completes.
+   */
+  readonly onResponse?: (response: Response, data: any) => void | Promise<void>;
 
   /**
    * Returns the current cookie jar.
@@ -119,12 +125,14 @@ export class TwitterGuestAuth implements TwitterAuth {
   protected v2Client: TwitterApi | null;
 
   fetch: typeof fetch;
+  readonly onResponse?: (response: Response, data: any) => void | Promise<void>;
 
   constructor(
     bearerToken: string,
     protected readonly options?: Partial<TwitterAuthOptions>,
   ) {
     this.fetch = withTransform(options?.fetch ?? fetch, options?.transform);
+    this.onResponse = options?.onResponse;
     this.bearerToken = bearerToken;
     this.jar = new CookieJar();
     this.v2Client = null;

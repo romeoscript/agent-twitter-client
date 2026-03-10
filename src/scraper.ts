@@ -95,6 +95,12 @@ export interface ScraperOptions {
    * proxy requests through other hosts, for example.
    */
   transform: Partial<FetchTransformOptions>;
+
+  /**
+   * Optional callback to be called when a request completes.
+   * This can be used to access the raw JSON response from Twitter.
+   */
+  onResponse?: (response: Response, data: any) => void | Promise<void>;
 }
 
 /**
@@ -961,6 +967,7 @@ export class Scraper {
     return {
       fetch: this.options?.fetch,
       transform: this.options?.transform,
+      onResponse: this.options?.onResponse,
     };
   }
 

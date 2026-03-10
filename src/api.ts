@@ -108,12 +108,16 @@ export async function requestApi<T>(
   const transferEncoding = res.headers.get('transfer-encoding');
   if (transferEncoding === 'chunked') {
     // Handle streaming response, if a reader is present
-    const reader = typeof res.body?.getReader === 'function' ? res.body.getReader() : null;
+    const reader =
+      typeof res.body?.getReader === 'function' ? res.body.getReader() : null;
     if (!reader) {
       try {
         const text = await res.text();
         try {
           const value = JSON.parse(text);
+          if (auth.onResponse) {
+            await auth.onResponse(res, value);
+          }
           return { success: true, value };
         } catch (e) {
           // Return if just a normal string
@@ -144,6 +148,9 @@ export async function requestApi<T>(
     try {
       // console.log('attempting to parse chunks', chunks);
       const value = JSON.parse(chunks);
+      if (auth.onResponse) {
+        await auth.onResponse(res, value);
+      }
       return { success: true, value };
     } catch (e) {
       // console.log('parsing chunks failed, sending as raw text');
@@ -156,6 +163,9 @@ export async function requestApi<T>(
   const contentType = res.headers.get('content-type');
   if (contentType && contentType.includes('application/json')) {
     const value: T = await res.json();
+    if (auth.onResponse) {
+      await auth.onResponse(res, value);
+    }
     if (res.headers.get('x-rate-limit-incoming') == '0') {
       auth.deleteToken();
     }
@@ -195,8 +205,7 @@ export function addApiFeatures(o: object) {
     android_graphql_skip_api_media_color_palette: false,
     creator_subscriptions_subscription_count_enabled: false,
     blue_business_profile_image_shape_enabled: false,
-    unified_cards_ad_metadata_container_dynamic_card_content_query_enabled:
-      false,
+    unified_cards_ad_metadata_container_dynamic_card_content_query_enabled: false,
   };
 }
 
