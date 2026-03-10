@@ -1,4 +1,9 @@
-import { getBookmarksV2, getUserTweetsV2 } from './tweets';
+import {
+  getBookmarksV2,
+  getUserTweetsV2,
+  retweetTweetV2,
+  likeTweetV2,
+} from './tweets';
 import { TwitterAuth } from './auth';
 
 describe('TweetsV2 official', () => {
@@ -10,6 +15,9 @@ describe('TweetsV2 official', () => {
       v2: {
         bookmarks: jest.fn(),
         userTimeline: jest.fn(),
+        me: jest.fn(),
+        retweet: jest.fn(),
+        like: jest.fn(),
       },
     };
 
@@ -49,6 +57,26 @@ describe('TweetsV2 official', () => {
         ]),
       }),
     );
+  });
+
+  test('retweetTweetV2 should call v2 me and retweet', async () => {
+    mockV2Client.v2.me.mockResolvedValue({ data: { id: 'me123' } });
+    mockV2Client.v2.retweet.mockResolvedValue({ data: { retweeted: true } });
+
+    await retweetTweetV2('tweet123', mockAuth);
+
+    expect(mockV2Client.v2.me).toHaveBeenCalled();
+    expect(mockV2Client.v2.retweet).toHaveBeenCalledWith('me123', 'tweet123');
+  });
+
+  test('likeTweetV2 should call v2 me and like', async () => {
+    mockV2Client.v2.me.mockResolvedValue({ data: { id: 'me123' } });
+    mockV2Client.v2.like.mockResolvedValue({ data: { liked: true } });
+
+    await likeTweetV2('tweet123', mockAuth);
+
+    expect(mockV2Client.v2.me).toHaveBeenCalled();
+    expect(mockV2Client.v2.like).toHaveBeenCalledWith('me123', 'tweet123');
   });
 
   test('should throw error if v2 client is not initialized', async () => {
