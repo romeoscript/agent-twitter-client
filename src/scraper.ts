@@ -117,6 +117,15 @@ export class Scraper {
   }
 
   /**
+   * Cleans up the scraper instance and clears any stored credentials.
+   * Call this when you are entirely done with the scraper to prevent memory leaks.
+   */
+  public destroy() {
+    this.auth.deleteToken();
+    this.authTrends.deleteToken();
+  }
+
+  /**
    * Initializes auth properties using a guest token.
    * Used when creating a new instance of this class, and when logging out.
    * @internal
