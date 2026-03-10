@@ -175,7 +175,7 @@ export interface Tweet {
   name?: string;
   mentions?: Mention[];
   permanentUrl?: string;
-  photos: Photo[];
+  photos?: Photo[];
   place?: PlaceRaw;
   quotedStatus?: Tweet;
   quotedStatusId?: string;
