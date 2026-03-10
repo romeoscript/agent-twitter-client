@@ -22,6 +22,7 @@ import {
 import { updateCookieJar } from './requests';
 import {
   TweetBookmarksTimelineV2Paginator,
+  TweetUserTimelineV2Paginator,
   ApiV2Includes,
   MediaObjectV2,
   PlaceV2,
@@ -1579,6 +1580,44 @@ export async function getBookmarksV2(
   }
 
   return await client.v2.bookmarks({
+    max_results: maxResults,
+    'tweet.fields': [
+      'referenced_tweets',
+      'created_at',
+      'description',
+      'entities',
+      'id',
+      'location',
+      'name',
+      'pinned_tweet_id',
+      'profile_image_url',
+      'protected',
+      'public_metrics',
+      'url',
+      'username',
+      'verified',
+    ] as any,
+  });
+}
+
+/**
+ * Fetch tweets from a user using the v2 API.
+ * @param userId The user ID whose tweets should be returned.
+ * @param maxResults The maximum number of results to return per request.
+ * @param auth The authentication object.
+ * @returns A promise that resolves to a paginator of tweets.
+ */
+export async function getUserTweetsV2(
+  userId: string,
+  maxResults: number,
+  auth: TwitterAuth,
+): Promise<TweetUserTimelineV2Paginator> {
+  const client = auth.getV2Client();
+  if (!client) {
+    throw new Error('Twitter v2 client is not initialized.');
+  }
+
+  return await client.v2.userTimeline(userId, {
     max_results: maxResults,
     'tweet.fields': [
       'referenced_tweets',
