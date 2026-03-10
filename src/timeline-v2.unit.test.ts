@@ -33,6 +33,22 @@ describe('TimelineV2 official', () => {
     );
   });
 
+  test('getLatestTimelineV2 should call v2 homeTimeline with correct params', async () => {
+    mockV2Client.v2.homeTimeline.mockResolvedValue({ data: [] });
+
+    await getLatestTimelineV2(20, mockAuth);
+
+    expect(mockV2Client.v2.homeTimeline).toHaveBeenCalledWith(
+      expect.objectContaining({
+        max_results: 20,
+        'tweet.fields': expect.arrayContaining([
+          'referenced_tweets',
+          'created_at',
+        ]),
+      }),
+    );
+  });
+
   test('should throw error if v2 client is not initialized', async () => {
     mockAuth.getV2Client.mockReturnValue(null);
 
