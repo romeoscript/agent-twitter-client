@@ -20,26 +20,32 @@ export async function getTrends(auth: TwitterAuth): Promise<string[]> {
   }
 
   const instructions = res.value.timeline?.instructions ?? [];
-  if (instructions.length < 2) {
-    throw new Error('No trend entries found.');
-  }
-
-  // Some of this is silly, but for now we're assuming we know nothing about the
-  // data, and that anything can be missing. Go has non-nilable strings and empty
-  // slices are nil, so it largely doesn't need to worry about this.
-  const entries = instructions[1].addEntries?.entries ?? [];
-  if (entries.length < 2) {
-    throw new Error('No trend entries found.');
-  }
-
-  const items = entries[1].content?.timelineModule?.items ?? [];
   const trends: string[] = [];
-  for (const item of items) {
-    const trend =
-      item.item?.clientEventInfo?.details?.guideDetails?.transparentGuideDetails
-        ?.trendMetadata?.trendName;
-    if (trend != null) {
-      trends.push(trend);
+
+  for (const instruction of instructions) {
+    const entries = instruction.addEntries?.entries ?? [];
+    for (const entry of entries) {
+      const items = entry.content?.timelineModule?.items ?? [];
+      for (const item of items) {
+        const trend =
+          item.item?.clientEventInfo?.details?.guideDetails
+            ?.transparentGuideDetails?.trendMetadata?.trendName;
+        if (trend != null) {
+          trends.push(trend);
+        }
+      }
+    }
+
+    if (instruction.pinEntry?.entry?.content?.timelineModule?.items) {
+      const items = instruction.pinEntry.entry.content.timelineModule.items;
+      for (const item of items) {
+        const trend =
+          item.item?.clientEventInfo?.details?.guideDetails
+            ?.transparentGuideDetails?.trendMetadata?.trendName;
+        if (trend != null) {
+          trends.push(trend);
+        }
+      }
     }
   }
 
