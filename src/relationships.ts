@@ -8,6 +8,7 @@ import {
   RelationshipTimeline,
   parseRelationshipTimeline,
 } from './timeline-relationship';
+import { UserV2Result, UserV2TimelinePaginator } from 'twitter-api-v2';
 import stringify from 'json-stable-stringify';
 
 export function getFollowing(
@@ -306,5 +307,35 @@ export async function unmuteUser(
   return new Response(JSON.stringify(data), {
     status: 200,
     headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+export async function getFollowersV2(
+  userId: string,
+  maxResults: number,
+  auth: TwitterAuth,
+): Promise<UserV2TimelinePaginator<UserV2Result>> {
+  const client = auth.getV2Client();
+  if (!client) {
+    throw new Error('Twitter v2 client is not initialized.');
+  }
+
+  return await client.v2.followers(userId, {
+    max_results: maxResults,
+    'user.fields': [
+      'created_at',
+      'description',
+      'entities',
+      'id',
+      'location',
+      'name',
+      'pinned_tweet_id',
+      'profile_image_url',
+      'protected',
+      'public_metrics',
+      'url',
+      'username',
+      'verified',
+    ],
   });
 }
