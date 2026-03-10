@@ -28,6 +28,7 @@ import {
   getFollowersV2,
   getFollowingV2,
   getTweetLikers,
+  getTweetRetweeters,
   followUser,
   muteUser,
   unmuteUser,
@@ -335,6 +336,16 @@ export class Scraper {
    */
   public getTweetLikers(tweetId: string, maxResults: number) {
     return getTweetLikers(tweetId, maxResults, this.auth);
+  }
+
+  /**
+   * Fetch users who retweeted a tweet using the v2 API.
+   * @param tweetId The tweet ID whose retweeters should be returned.
+   * @param maxResults The maximum number of results to return.
+   * @returns A promise that resolves to a paginator of users who retweeted the tweet.
+   */
+  public getTweetRetweeters(tweetId: string, maxResults: number) {
+    return getTweetRetweeters(tweetId, maxResults, this.auth);
   }
 
   /**
