@@ -59,6 +59,7 @@ import {
   getTweetsWhere,
   getTweetsByUserId,
   getLikedTweets,
+  getUserLikedTweetsV2,
   getBookmarksV2,
   getUserTweetsV2,
   retweetTweetV2,
@@ -687,6 +688,16 @@ export class Scraper {
    */
   public getUserTweetsV2(userId: string, maxResults: number) {
     return getUserTweetsV2(userId, maxResults, this.auth);
+  }
+
+  /**
+   * Fetch tweets liked by a user using the v2 API.
+   * @param userId The user ID whose liked tweets should be returned.
+   * @param maxResults The maximum number of results to return per request.
+   * @returns A promise that resolves to a paginator of tweets.
+   */
+  public getUserLikedTweetsV2(userId: string, maxResults: number) {
+    return getUserLikedTweetsV2(userId, maxResults, this.auth);
   }
 
   /**
