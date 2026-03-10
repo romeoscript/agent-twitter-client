@@ -74,6 +74,7 @@ import {
   TimelineV2,
   getHomeTimelineV2,
   getLatestTimelineV2,
+  getUserMentionsV2,
 } from './timeline-v2';
 import { ListMembersResponse } from './timeline-list';
 import { fetchHomeTimeline } from './timeline-home';
@@ -350,6 +351,16 @@ export class Scraper {
    */
   public getLatestTimelineV2(maxResults: number) {
     return getLatestTimelineV2(maxResults, this.auth);
+  }
+
+  /**
+   * Fetch the mentions timeline using the v2 API.
+   * @param userId The user ID whose mentions should be returned.
+   * @param maxResults The maximum number of results to return per request.
+   * @returns A promise that resolves to a paginator of tweets.
+   */
+  public getUserMentionsV2(userId: string, maxResults: number) {
+    return getUserMentionsV2(userId, maxResults, this.auth);
   }
 
   /**
