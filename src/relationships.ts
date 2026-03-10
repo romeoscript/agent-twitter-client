@@ -314,7 +314,7 @@ export async function getFollowersV2(
   userId: string,
   maxResults: number,
   auth: TwitterAuth,
-): Promise<UserV2TimelinePaginator<UserV2Result>> {
+): Promise<UserFollowersV2Paginator> {
   const client = auth.getV2Client();
   if (!client) {
     throw new Error('Twitter v2 client is not initialized.');
