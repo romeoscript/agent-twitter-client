@@ -3,6 +3,8 @@ import {
   getFollowingV2,
   getTweetLikers,
   getTweetRetweeters,
+  followUserV2,
+  unfollowUserV2,
 } from './relationships';
 import { TwitterAuth } from './auth';
 
@@ -17,6 +19,9 @@ describe('Relationships v2', () => {
         following: jest.fn(),
         tweetLikedBy: jest.fn(),
         tweetRetweetedBy: jest.fn(),
+        me: jest.fn(),
+        follow: jest.fn(),
+        unfollow: jest.fn(),
       },
     };
 
@@ -79,6 +84,26 @@ describe('Relationships v2', () => {
         max_results: 5,
       }),
     );
+  });
+
+  test('followUserV2 should call v2 me and follow', async () => {
+    mockV2Client.v2.me.mockResolvedValue({ data: { id: 'me123' } });
+    mockV2Client.v2.follow.mockResolvedValue({ data: { following: true } });
+
+    await followUserV2('user123', mockAuth);
+
+    expect(mockV2Client.v2.me).toHaveBeenCalled();
+    expect(mockV2Client.v2.follow).toHaveBeenCalledWith('me123', 'user123');
+  });
+
+  test('unfollowUserV2 should call v2 me and unfollow', async () => {
+    mockV2Client.v2.me.mockResolvedValue({ data: { id: 'me123' } });
+    mockV2Client.v2.unfollow.mockResolvedValue({ data: { following: false } });
+
+    await unfollowUserV2('user123', mockAuth);
+
+    expect(mockV2Client.v2.me).toHaveBeenCalled();
+    expect(mockV2Client.v2.unfollow).toHaveBeenCalledWith('me123', 'user123');
   });
 
   test('should throw error if v2 client is not initialized', async () => {
