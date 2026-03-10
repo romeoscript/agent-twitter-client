@@ -9,6 +9,7 @@ export interface TwitterAuthOptions {
   fetch: typeof fetch;
   transform: Partial<FetchTransformOptions>;
   onResponse?: (response: Response, data: any) => void | Promise<void>;
+  extraHeaders?: HeadersInit;
 }
 
 export interface TwitterAuth {
@@ -23,6 +24,16 @@ export interface TwitterAuth {
    * Returns the current cookie jar.
    */
   cookieJar(): CookieJar;
+
+  /**
+   * Returns the extra headers that should be sent with every request.
+   */
+  extraHeaders(): Headers;
+
+  /**
+   * Sets the extra headers that should be sent with every request.
+   */
+  setExtraHeaders(headers: HeadersInit): void;
 
   /**
    * Logs into a Twitter account using the v2 API
@@ -142,6 +153,23 @@ export class TwitterGuestAuth implements TwitterAuth {
 
   cookieJar(): CookieJar {
     return this.jar;
+  }
+
+  extraHeaders(): Headers {
+    return this.headers;
+  }
+
+  setExtraHeaders(headers: HeadersInit): void {
+    // Clear existing headers
+    for (const key of Array.from((this.headers as any).keys())) {
+      this.headers.delete(key as string);
+    }
+
+    // Set new headers
+    const newHeaders = new Headers(headers);
+    newHeaders.forEach((value, key) => {
+      this.headers.set(key, value);
+    });
   }
 
   getV2Client(): TwitterApi | null {
