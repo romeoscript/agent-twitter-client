@@ -55,6 +55,7 @@ import {
   getUserTweetsV2,
   retweetTweetV2,
   likeTweetV2,
+  getListTweetsV2,
   TweetQuery,
   getTweet,
   fetchListTweets,
@@ -623,6 +624,16 @@ export class Scraper {
    */
   public likeTweetV2(tweetId: string) {
     return likeTweetV2(tweetId, this.auth);
+  }
+
+  /**
+   * Fetch tweets from a list using the v2 API.
+   * @param listId The list ID whose tweets should be returned.
+   * @param maxResults The maximum number of results to return per request.
+   * @returns A promise that resolves to a paginator of tweets.
+   */
+  public getListTweetsV2(listId: string, maxResults: number) {
+    return getListTweetsV2(listId, maxResults, this.auth);
   }
 
   /**
